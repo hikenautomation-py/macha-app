@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-24): `npm run build` ✅ dan `npm run lint` ✅ (rincian di `COMPLETED.md`).
+> Status validasi terakhir (2026-08-25): `npm run build` ✅ dan `npm run lint` ✅ (rincian di `COMPLETED.md`). Deploy Vercel live di `macha-app-sigma.vercel.app`, webhook Telegram aktif, 6 user dummy ter-seed.
 
 ---
 
@@ -22,20 +22,20 @@
 - [x] Tentukan admin approval + dapatkan `TELEGRAM_ADMIN_CHAT_ID`
 - [x] Set `TELEGRAM_WEBHOOK_SECRET` (secret token saat `setWebhook`)
 - [x] Daftar akun email service (Resend sandbox) → `EMAIL_API_KEY` + `EMAIL_FROM`
-- [ ] Setup Vercel project + environment variables
+- [x] Setup Vercel project + environment variables (8 env var production ter-set via REST API)
 - [x] Isi semua placeholder rahasia di `.env.local` (jangan commit)
 
 ## Sprint 1 — Fondasi data & auth
 
 - [x] Push migration `0001_initial_schema.sql` ke Supabase (via pooler `aws-0-ap-northeast-1.pooler.supabase.com`; 6 tabel + 14 policy RLS)
 - [x] Review RLS policies di dashboard Supabase (14 policy terpasang, terverifikasi via `pg_policies`)
-- [ ] Aktifkan Email/Password di Supabase Auth
-- [ ] Seed data dummy user (golongan berbeda) untuk testing
-- [ ] Verifikasi login Supabase Auth + baca data dummy
+- [x] Aktifkan Email/Password di Supabase Auth (default aktif; terverifikasi signInWithPassword)
+- [x] Seed data dummy user — 6 user (golongan 1–7) via Admin API; trigger `handle_new_user` mengisi `public.users`
+- [x] Verifikasi login Supabase Auth + baca data dummy (sign-in OK via anon key)
 
 ## Sprint 2 — Registrasi & approval Telegram
 
-- [ ] Deploy ke Vercel + set webhook `/api/telegramWebhook`
+- [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
 - [ ] Uji alur `/start` → nama/NIK/golongan → `pending_registrations`
 - [ ] Uji notifikasi ke admin + tombol inline Setujui/Tolak
 - [ ] Uji `registerApprove` / `registerReject` end-to-end
