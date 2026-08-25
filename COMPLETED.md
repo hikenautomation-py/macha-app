@@ -46,5 +46,38 @@
 
 ---
 
+## 2026-08-25 — Integrasi notifikasi, E2E test & deploy produksi
+
+### Notifikasi Telegram group/channel (broadcast)
+- [x] Migrasi `supabase/migrations/0003_notification_channels.sql` (tabel `notification_channels`) — dibuat & diterapkan
+- [x] `lib/telegram.js`: tambah `listNotificationChannels()` + `notifyTelegram()` (broadcast ke semua channel + admin)
+- [x] `app/api/telegramWebhook/route.js`: perintah admin `/daftargrup` & `/hapusgrup`
+- [x] Route `tasks`, `problems`, `reports`, `approve`, `reject` kini pakai `notifyTelegram`
+- [x] `SETUP_TELEGRAM.md` diperbarui (alur bot lengkap: registrasi, group/channel, laporan, ringkasan notifikasi)
+
+### Database
+- [x] Terapkan RPC `approve_report` (`0002_rpc_approve.sql`) — sebelumnya belum ter-apply
+- [x] Set hierarki `atasan_id` untuk 6 user dummy (supervisor/team stats testable)
+- [x] Konfirmasi `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
+
+### Email (Resend)
+- [x] Kirim email test sandbox ke `hikenautomation@gmail.com` — HTTP 200 (id `baace777-ddb3-4d8c-9fce-3ce1df59433c`)
+
+### E2E API test ke produksi (`macha-app-sigma.vercel.app`) — 14/14 PASS
+- [x] sign-in (sm & tech), RBAC (403), create/list task, completion report, pendingApproval, approve (+10 poin atomik), points, problem report, reject → in_progress → resubmit, team stats
+
+### Bug fix
+- [x] `app/api/tasks/pendingApproval/route.js` missing import `mapReport` (penyebab 500/ReferenceError) — fixed & terverifikasi 200 di produksi
+
+### Deploy Vercel
+- [x] `npm run lint` ✅ & `npm run build` ✅
+- [x] Deploy produksi READY/PROMOTED (alias `macha-app-sigma.vercel.app` ter-update)
+- [x] `.vercel/project.json` (project/org id) untuk `vercel link`
+
+---
+
 ## Berikutnya (lihat TODOS.md)
-- Isi credential rahasia, push migration ke Supabase, deploy ke Vercel, daftarkan webhook Telegram, lalu uji end-to-end per sprint.
+- Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)
+- Verifikasi domain pengirim Resend (user-dependent)
+- Connect Git auto-deploy Vercel (opsional)
+- UAT dengan pengguna asli + polish UI (Sprint 6–8)

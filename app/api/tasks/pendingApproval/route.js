@@ -1,6 +1,6 @@
 import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { mapTask } from '@/lib/mappers';
+import { mapTask, mapReport } from '@/lib/mappers';
 
 // GET /api/tasks/pendingApproval?atasanId= — task menunggu approval (golongan >= 5)
 // Setiap task disertai laporan pending-nya (reportId + catatan + nama pelapor),

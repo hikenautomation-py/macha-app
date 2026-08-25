@@ -1,6 +1,6 @@
 import { requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { sendTelegramMessage } from '@/lib/telegram';
+import { notifyTelegram } from '@/lib/telegram';
 import { emailProblemReport } from '@/lib/email';
 import { normalizeUrgency, URGENCY_LABEL } from '@/lib/constants';
 
@@ -54,7 +54,8 @@ export async function POST(req, { params }) {
       .eq('id', task.assigned_by)
       .maybeSingle();
     if (atasan?.telegram_chat_id) {
-      await sendTelegramMessage(
+      await notifyTelegram(
+        admin,
         atasan.telegram_chat_id,
         `🚨 <b>PROBLEM REPORT</b> — ${URGENCY_LABEL[u]}\n${task.title}\nDari: ${profile.nama}\n\n${deskripsiMasalah}`
       );

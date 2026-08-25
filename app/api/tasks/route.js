@@ -1,7 +1,7 @@
 import { requireGolongan, requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { mapTask } from '@/lib/mappers';
-import { sendTelegramMessage } from '@/lib/telegram';
+import { notifyTelegram } from '@/lib/telegram';
 import { emailTaskAssigned } from '@/lib/email';
 
 // POST /api/tasks — buat task baru (golongan >= 5)
@@ -42,7 +42,8 @@ export async function POST(req) {
 
   if (target?.telegram_chat_id) {
     const poin = Number(bobotPoin) || 0;
-    await sendTelegramMessage(
+    await notifyTelegram(
+      admin,
       target.telegram_chat_id,
       `📋 <b>Task baru</b>\n${judul}${deadline ? `\nDeadline: ${deadline}` : ''}\nBobot: ${poin} poin\n\n🔖 #task_${task.id}`
     );

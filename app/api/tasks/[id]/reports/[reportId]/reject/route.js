@@ -1,6 +1,6 @@
 import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { sendTelegramMessage } from '@/lib/telegram';
+import { notifyTelegram } from '@/lib/telegram';
 import { emailTaskRejected } from '@/lib/email';
 
 // POST /api/tasks/{id}/reports/{reportId}/reject (atasan terkait, golongan >= 5)
@@ -34,7 +34,8 @@ export async function POST(req, { params }) {
       .eq('id', task.assigned_to)
       .maybeSingle();
     if (pelaksana?.telegram_chat_id) {
-      await sendTelegramMessage(
+      await notifyTelegram(
+        admin,
         pelaksana.telegram_chat_id,
         `↩️ <b>Perlu revisi</b>\n${task.title}${catatanRevisi ? `\n\nCatatan: ${catatanRevisi}` : ''}`
       );

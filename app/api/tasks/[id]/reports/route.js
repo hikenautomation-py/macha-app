@@ -1,6 +1,6 @@
 import { requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { sendTelegramMessage } from '@/lib/telegram';
+import { notifyTelegram } from '@/lib/telegram';
 import { emailReportSubmitted } from '@/lib/email';
 
 // POST /api/tasks/{id}/reports — submit laporan penyelesaian (semua user)
@@ -52,7 +52,8 @@ export async function POST(req, { params }) {
       .eq('id', task.assigned_by)
       .maybeSingle();
     if (atasan?.telegram_chat_id) {
-      await sendTelegramMessage(
+      await notifyTelegram(
+        admin,
         atasan.telegram_chat_id,
         `✅ <b>Completion report</b>\n${task.title}\nDari: ${profile.nama}\n\nMenunggu approval kamu.`
       );

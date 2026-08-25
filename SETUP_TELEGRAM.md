@@ -82,3 +82,113 @@ TELEGRAM_BOT_TOKEN=123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw
    ```
 2. Isi ke `TELEGRAM_WEBHOOK_SECRET` di `.env.local`.
 3. Pakai nilai yang sama saat daftar webhook (`setWebhook` dengan `secret_token`).
+
+---
+
+## Panduan penggunaan (alur lengkap)
+
+Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook aktif.
+
+### Daftar perintah bot
+
+| Perintah | Fungsi | Siapa |
+| --- | --- | --- |
+| `/start` | Mulai / daftarkan diri ke bot (chat pribadi) | Semua karyawan |
+| `/daftargrup` | Daftarkan group/channel agar semua notif masuk ke sana | Admin (di dalam group/channel) |
+| `/hapusgrup` | Hapus group/channel dari daftar penerima notif | Admin (di dalam group/channel) |
+
+> Selain perintah di atas, user tidak perlu mengetik perintah lain — laporan
+> dikirim dengan cara **membalas (reply)** pesan notifikasi task dari bot (lihat bawah).
+
+### Alur 1 — Registrasi user ke bot
+
+1. Karyawan membuka bot di chat pribadi: `t.me/<username_bot>` → tekan **Start**
+   (atau kirim `/start`).
+2. Bot bertanya **nama lengkap** → jawab dengan nama.
+3. Bot bertanya **NIK** → jawab dengan NIK karyawan.
+4. Bot bertanya **golongan** (angka 1–7) → jawab angka, contoh `3` untuk technician.
+5. Bot menyimpan data ke `pending_registrations` dan mengirim notifikasi ke
+   **admin approval** (chat `TELEGRAM_ADMIN_CHAT_ID`) dengan tombol inline:
+   - ✅ **Setujui** → user dipindah ke tabel `users`, `chat_id`-nya terhubung ke akun.
+   - ❌ **Tolak** → pendaftaran dihapus, user mendapat pesan penolakan.
+6. Setelah disetujui, user mendapat pesan "kamu sudah aktif sebagai <golongan>".
+   Jika user kirim `/start` lagi sebelum di-approve, bot membalas "masih menunggu approval".
+
+> Catatan: user yang terdaftar lewat bot (Telegram) belum punya akun login web
+> (email/password). Akun web dibuat terpisah untuk login dashboard. Untuk tahap
+> UAT, akun dummy web sudah disediakan; akun Telegram adalah jalur laporan cepat.
+
+### Alur 2 — Mendaftarkan group/channel (notif broadcast)
+
+Supaya **semua notifikasi task** (task baru, laporan selesai, laporan masalah,
+hasil approval) masuk ke satu group/channel, daftarkan group/channel tersebut:
+
+1. Tambahkan bot ke group/channel kamu.
+   - **Group**: buka info grup → Add member → cari `@<username_bot>`.
+   - **Channel**: buka info channel → Administrators → Add admin → cari bot.
+2. Pastikan bot bisa membaca/mengirim pesan:
+   - Di **@BotFather**: `/mybots` → pilih bot → **Bot Settings → Group Privacy → Turn off**,
+     ATAU jadikan bot sebagai **admin** grup.
+   - Untuk **channel**, bot **wajib** dijadikan admin agar bisa kirim pesan.
+3. **Admin** kirim perintah di dalam group/channel tersebut:
+   ```
+   /daftargrup
+   ```
+4. Bot membalas konfirmasi + menampilkan `chat_id` group/channel.
+5. Selesai — semua notifikasi task otomatis diteruskan ke group/channel itu
+   (selain ke chat pribadi masing-masing penerima).
+
+> Hapus dari daftar kapan saja dengan mengirim `/hapusgrup` di group/channel tsb.
+> Hanya admin (golongan ≥ 5 atau pemilik `TELEGRAM_ADMIN_CHAT_ID`) yang bisa
+> mendaftar/menghapus group/channel.
+
+### Alur 3 — Lapor task selesai (completion report)
+
+Ada dua cara:
+
+**A. Lewat bot (cepat):**
+1. Saat ada task baru, bot mengirim pesan ke pelaksana berisi tag
+   `#task_<id>` (contoh `#task_123e4567-...`).
+2. Pelaksana **membalas (reply)** pesan notifikasi itu, sambil **melampirkan foto**
+   sebagai bukti pengerjaan.
+3. Bot otomatis membuat completion report (status task → `report_submitted`),
+   lalu mengirim notifikasi "menunggu approval" ke atasan.
+4. Atasan menyetujui/menolak dari dashboard web.
+
+**B. Lewat web dashboard:**
+- Buka dashboard → task → **Lapor selesai** → isi catatan + unggah foto → submit.
+
+> Foto dari bot saat ini dicatat sebagai laporan (kolom `photo_url` diisi `null`
+> karena belum ada upload storage dari sisi bot) — upload foto penuh tersedia
+> lewat dashboard web.
+
+### Alur 4 — Lapor masalah (problem report)
+
+**A. Lewat bot (cepat):**
+1. Pelaksana **membalas (reply)** pesan notifikasi task (`#task_<id>`) dengan
+   **teks saja** (tanpa foto).
+2. Opsional: tulis tingkat urgensi di kata pertama:
+   - `mendesak` → "Mendesak"
+   - `perlu hari ini` → "Perlu hari ini"
+   - `bisa nunggu` → "Bisa nunggu"
+   - Kalau tidak ditulis, default = "perlu hari ini".
+   Contoh balasan: `mendesak Line 2 downtime, sensor proximity error`
+3. Bot membuat problem report dengan prioritas tinggi dan mengirim notifikasi
+   langsung ke atasan (tidak masuk antrian approval biasa).
+
+**B. Lewat web dashboard:**
+- Buka dashboard → task → **Lapor masalah** → pilih urgensi + deskripsi → submit.
+
+### Rangkuman notifikasi
+
+| Kejadian | Dikirim ke |
+| --- | --- |
+| Task baru dibuat | Pelaksana (chat pribadi) + group/channel terdaftar |
+| Completion report masuk | Atasan + group/channel terdaftar |
+| Problem report masuk | Atasan (prioritas tinggi) + group/channel terdaftar |
+| Task disetujui | Pelaksana + group/channel terdaftar |
+| Task perlu revisi | Pelaksana + group/channel terdaftar |
+
+> Selain Telegram, notifikasi penting juga dikirim ke **email** penerima
+> (via Resend). Email aktif bila `EMAIL_API_KEY` + `EMAIL_FROM` terisi.
+

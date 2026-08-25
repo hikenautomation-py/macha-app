@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-25): `npm run build` ✅ dan `npm run lint` ✅ (rincian di `COMPLETED.md`). Deploy Vercel live di `macha-app-sigma.vercel.app`, webhook Telegram aktif, 6 user dummy ter-seed.
+> Status validasi terakhir (2026-08-25): `npm run build` ✅ dan `npm run lint` ✅. Deploy Vercel **live** di `macha-app-sigma.vercel.app` (build READY/PROMOTED). E2E API test **14/14 PASS** ke produksi. Broadcast group/channel Telegram + email Resend sudah terimplementasi. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -36,37 +36,51 @@
 ## Sprint 2 — Registrasi & approval Telegram
 
 - [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
-- [ ] Uji alur `/start` → nama/NIK/golongan → `pending_registrations`
-- [ ] Uji notifikasi ke admin + tombol inline Setujui/Tolak
-- [ ] Uji `registerApprove` / `registerReject` end-to-end
+- [x] Implementasi alur `/start` → nama/NIK/golongan → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai)
+- [ ] Uji end-to-end alur registrasi dengan bot Telegram asli (butuh akun Telegram + admin asli)
 
 ## Sprint 3 — Task assignment & notifikasi
 
-- [ ] Uji `POST /api/tasks` dari dashboard atasan
-- [ ] Uji notif Telegram otomatis saat task dibuat
-- [ ] Uji `GET /api/tasks?userId=` di dashboard technician
+- [x] Uji `POST /api/tasks` dari dashboard atasan (E2E ✅)
+- [x] Uji `GET /api/tasks?userId=` di dashboard technician (E2E ✅)
+- [x] Wiring notif Telegram otomatis saat task dibuat (via `notifyTelegram`, route `tasks`)
+- [ ] Validasi notif Telegram benar-benar terkirim ke chat/group asli (butuh bot asli + `notification_channels` terisi)
 
 ## Sprint 4 — Completion report & approval poin
 
-- [ ] Uji form lapor selesai + upload foto ke Supabase Storage
-- [ ] Uji antrian approval di dashboard atasan
-- [ ] Uji transaksi approve/reject (status + poin atomik)
-- [ ] Uji skenario reject → revisi → submit ulang
+- [x] Uji form lapor selesai (POST report) (E2E ✅)
+- [x] Uji antrian approval di dashboard atasan (`/tasks/pendingApproval`) (E2E ✅, fix import `mapReport`)
+- [x] Uji transaksi approve/reject (status + poin atomik via RPC `approve_report`) (E2E ✅)
+- [x] Uji skenario reject → revisi → submit ulang (E2E ✅)
+- [ ] Uji upload foto ke Supabase Storage (belum tercakup di E2E)
 
 ## Sprint 5 — Problem report & statistik
 
-- [ ] Uji form problem report (web + Telegram) + urgensi
-- [ ] Uji notif prioritas tinggi ke atasan
-- [ ] Uji endpoint `/users/{id}/points` dan `/teams/{id}/stats`
-- [ ] Uji metric card dashboard atasan + kartu "poin bulan ini"
+- [x] Uji form problem report (POST problem) (E2E ✅)
+- [x] Uji endpoint `/users/{id}/points` dan `/teams/{id}/stats` (E2E ✅)
+- [x] Wiring notif prioritas tinggi ke atasan (via `notifyTelegram`, route `problems`)
+- [ ] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli)
+- [ ] Uji metric card dashboard atasan + kartu "poin bulan ini" (polish UI)
 
 ## Sprint 6 — Email & polish
 
 - [x] Integrasi email service + template notifikasi (Resend via `lib/email.js`, terpasang di 5 titik notifikasi)
-- [ ] Tes domain pengirim tidak masuk spam kantor
+- [x] Kirim email test Resend sandbox → `hikenautomation@gmail.com` (HTTP 200)
+- [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
+- [ ] Verifikasi domain pengirim Resend (user-dependent) + tes tidak masuk spam kantor
 - [ ] Polish UI sesuai `DESIGN.md` di semua halaman
 - [ ] Tambah empty state & error state yang informatif
-- [ ] Review keamanan: pastikan tidak ada write langsung ke `points_history` dari client
+
+## Fitur broadcast group/channel Telegram (SELESAI)
+
+- [x] Migrasi `0003_notification_channels.sql` (tabel `notification_channels`) — dibuat & diterapkan
+- [x] `lib/telegram.js`: `listNotificationChannels()` + `notifyTelegram()` (broadcast ke semua channel + admin)
+- [x] Perintah admin bot: `/daftargrup` & `/hapusgrup`
+- [x] Notifikasi completion/problem di semua route task memakai `notifyTelegram`
+- [x] `SETUP_TELEGRAM.md` diperbarui (alur bot lengkap: registrasi, group/channel, laporan, ringkasan notifikasi)
+- [ ] Validasi `/daftargrup` di group/channel asli (bot jadi admin + disable Group Privacy) — butuh aksi user
+
+---
 
 ## Sprint 7 — UAT & stabilisasi
 

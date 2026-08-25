@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
-import { sendTelegramMessage, answerCallback, editMessageText } from '@/lib/telegram';
+import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram } from '@/lib/telegram';
 import { normalizeUrgency, URGENCY_LABEL, golonganLabel } from '@/lib/constants';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -40,6 +40,16 @@ export async function POST(req) {
   // 2) /start
   if (text === '/start') {
     await handleStart(admin, chatId);
+    return jsonOk({ received: true });
+  }
+
+  // 2b) Daftarkan / hapus group/channel penerima broadcast notifikasi.
+  if (text.startsWith('/daftargrup')) {
+    await handleRegisterChannel(admin, msg, chatId);
+    return jsonOk({ received: true });
+  }
+  if (text.startsWith('/hapusgrup')) {
+    await handleRemoveChannel(admin, msg, chatId);
     return jsonOk({ received: true });
   }
 
@@ -217,6 +227,70 @@ async function rejectRegistration(admin, chatId, cq, messageId) {
   }
 }
 
+// ---------- Daftar / hapus group/channel notifikasi ----------
+async function handleRegisterChannel(admin, msg, chatId) {
+  const chatType = msg.chat?.type;
+  if (!['group', 'supergroup', 'channel'].includes(chatType)) {
+    await sendTelegramMessage(chatId, 'Perintah ini dijalankan di dalam group/channel ya, bukan di chat pribadi.');
+    return;
+  }
+
+  const senderId = String(msg.from?.id || '');
+  const isAdminChat = senderId === String(ADMIN_CHAT_ID);
+  const { data: sender } = await admin
+    .from('users')
+    .select('*')
+    .eq('telegram_chat_id', senderId)
+    .maybeSingle();
+  const isAdminUser = sender && Number(sender.golongan) >= 5;
+
+  if (!isAdminChat && !isAdminUser) {
+    await sendTelegramMessage(chatId, 'Maaf, hanya admin yang bisa mendaftarkan group/channel.');
+    return;
+  }
+
+  const nama = msg.chat?.title || msg.chat?.username || String(chatId);
+  const { error } = await admin.from('notification_channels').upsert(
+    { chat_id: String(chatId), nama, chat_type: chatType },
+    { onConflict: 'chat_id' }
+  );
+
+  if (error) {
+    await sendTelegramMessage(chatId, `Gagal mendaftarkan group/channel: ${error.message}`);
+    return;
+  }
+
+  await sendTelegramMessage(
+    chatId,
+    `✅ Group/channel ini sudah didaftarkan sebagai penerima notifikasi.\nSemua notifikasi task (task baru, completion report, problem report, hasil approval) akan diteruskan ke sini.\n\nchat_id: <code>${chatId}</code>`
+  );
+}
+
+async function handleRemoveChannel(admin, msg, chatId) {
+  const chatType = msg.chat?.type;
+  if (!['group', 'supergroup', 'channel'].includes(chatType)) {
+    await sendTelegramMessage(chatId, 'Perintah ini dijalankan di dalam group/channel ya, bukan di chat pribadi.');
+    return;
+  }
+
+  const senderId = String(msg.from?.id || '');
+  const isAdminChat = senderId === String(ADMIN_CHAT_ID);
+  const { data: sender } = await admin
+    .from('users')
+    .select('*')
+    .eq('telegram_chat_id', senderId)
+    .maybeSingle();
+  const isAdminUser = sender && Number(sender.golongan) >= 5;
+
+  if (!isAdminChat && !isAdminUser) {
+    await sendTelegramMessage(chatId, 'Maaf, hanya admin yang bisa menghapus group/channel.');
+    return;
+  }
+
+  await admin.from('notification_channels').delete().eq('chat_id', String(chatId));
+  await sendTelegramMessage(chatId, '🗑️ Group/channel ini sudah dihapus dari daftar penerima notifikasi.');
+}
+
 // ---------- Balasan ke notifikasi task ----------
 async function handleTaskReply(admin, msg, chatId, text) {
   const repliedText = msg.reply_to_message?.text || '';
@@ -256,7 +330,7 @@ async function handleTaskReply(admin, msg, chatId, text) {
     if (task.assigned_by) {
       const { data: atasan } = await admin.from('users').select('telegram_chat_id').eq('id', task.assigned_by).maybeSingle();
       if (atasan?.telegram_chat_id) {
-        await sendTelegramMessage(atasan.telegram_chat_id, `✅ <b>Completion report</b> (via bot)\n${task.title}\n\nMenunggu approval.`);
+        await notifyTelegram(admin, atasan.telegram_chat_id, `✅ <b>Completion report</b> (via bot)\n${task.title}\n\nMenunggu approval.`);
       }
     }
     return;
@@ -280,7 +354,7 @@ async function handleTaskReply(admin, msg, chatId, text) {
   if (task.assigned_by) {
     const { data: atasan } = await admin.from('users').select('telegram_chat_id').eq('id', task.assigned_by).maybeSingle();
     if (atasan?.telegram_chat_id) {
-      await sendTelegramMessage(atasan.telegram_chat_id, `🚨 <b>PROBLEM REPORT</b> — ${URGENCY_LABEL[urgensi]}\n${task.title}\n\n${deskripsi}`);
+      await notifyTelegram(admin, atasan.telegram_chat_id, `🚨 <b>PROBLEM REPORT</b> — ${URGENCY_LABEL[urgensi]}\n${task.title}\n\n${deskripsi}`);
     }
   }
 }
