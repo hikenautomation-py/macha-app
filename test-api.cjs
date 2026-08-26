@@ -1,6 +1,6 @@
 const SUPABASE_URL = 'https://pnpzkdyamjnxhujhbwjw.supabase.co';
 const ANON = 'sb_publishable_K-V-9uKqi4IuPLRh1pxfJA_ht0klB1r';
-const BASE = 'https://macha-app-sigma.vercel.app/api';
+const BASE = 'https://app.machapp.web.id/api';
 
 async function signIn(email, password) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
