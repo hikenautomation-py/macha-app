@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
+import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan, TITLE_OPTIONS } from '@/lib/constants';
 
 export default function Login() {
-  const { session, profile, loading, signIn, signUp } = useAuth();
+  const { session, profile, loading, signIn } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState('masuk');
   const [form, setForm] = useState({ email: '', password: '', nama: '', npk: '', golongan: '3', title: 'Technician' });
@@ -31,14 +32,23 @@ export default function Login() {
         if (error) throw new Error(error.message);
       } else {
         if (!form.nama.trim()) throw new Error('Nama wajib diisi.');
-        const { error } = await signUp(form.email, form.password, {
-          nama: form.nama.trim(),
-          npk: form.npk.trim(),
-          golongan: Number(form.golongan) || 1,
-          title: form.title,
+        // Daftar via server: akun langsung aktif (email terconfirm), tanpa perlu
+        // klik link email — karena golongan 1-5 tidak bisa akses internet/email.
+        const res = await apiFetch('/api/signup', {
+          method: 'POST',
+          body: {
+            email: form.email,
+            password: form.password,
+            nama: form.nama,
+            npk: form.npk,
+            golongan: Number(form.golongan) || 1,
+            title: form.title,
+          },
         });
-        if (error) throw new Error(error.message);
-        setError('Berhasil mendaftar! Cek email kamu untuk konfirmasi (jika diaktifkan), lalu masuk.');
+        if (!res.ok) throw new Error(apiErrorMessage(res));
+        // Akun sudah aktif — langsung masuk.
+        const { error: signInErr } = await signIn(form.email, form.password);
+        if (signInErr) setError('Terdaftar! Silakan masuk dengan email & password kamu.');
       }
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan.');

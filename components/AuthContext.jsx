@@ -42,15 +42,11 @@ export function AuthProvider({ children }) {
   }, [session, supabase]);
 
   const signIn = useCallback((email, password) => supabase.auth.signInWithPassword({ email, password }), [supabase]);
-  const signUp = useCallback(
-    (email, password, meta) => supabase.auth.signUp({ email, password, options: { data: meta } }),
-    [supabase]
-  );
   const signOut = useCallback(() => supabase.auth.signOut(), [supabase]);
 
   return (
     <AuthContext.Provider
-      value={{ supabase, session, user: session?.user || null, profile, loading, signIn, signUp, signOut }}
+      value={{ supabase, session, user: session?.user || null, profile, loading, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>

@@ -35,6 +35,17 @@ Di Supabase dan Vercel, aktifkan konfigurasi dasar:
 | Serverless Functions | Vercel | Otomatis tersedia pada platform Vercel, tidak perlu setup khusus |
 | Hosting | Vercel | Otomatis via project import; produksi live di `app.machapp.web.id` |
 
+> **Web signup & email confirmation** — pendaftaran via `app/login` sengaja dibuat
+> **langsung aktif**: route server `POST /api/signup` membuat akun lewat service role dengan
+> `email_confirm: true`. Pelaksana golongan 1-5 yang internet/email-nya diblokir IT **tidak perlu
+> klik link konfirmasi email** untuk bisa login. Karena plain `@supabase/supabase-js` browser
+> `signUp` sudah tidak dipakai, pastikan di **Supabase Dashboard**:
+> - **Authentication → Sign In / Providers → Email → Confirm email** di-*OFF* (agar tidak ada email
+>   konfirmasi terkirim yang link-nya mengarah ke alamat lokal).
+> - **Authentication → URL Configuration → Site URL** di-set ke `https://app.machapp.web.id`
+>   (dan tambahkan di **Redirect URLs**), supaya link otentikasi apa pun mengarah ke produksi,
+>   bukan `localhost:3000`.
+
 > Catatan biaya:
 > - **Supabase Free** menyediakan 500 MB database, 50.000 monthly active users untuk Auth, 1 GB storage, dan 2 GB egress. Cukup untuk skala tim satu departemen.
 > - **Vercel Hobby** menyediakan 100 GB bandwidth, 500 serverless function invocations per hari (atau lebih sesuai kebijakan terbaru), domain gratis.
