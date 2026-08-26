@@ -39,6 +39,24 @@ export async function POST(req) {
     return jsonError(code === 'ALREADY_EXISTS' ? 409 : 400, code, error.message);
   }
 
-  // Row public.users dibuat otomatis oleh trigger on_auth_user_created.
-  return jsonOk({ userId: data.user.id });
+  // JAMIN baris public.users dengan id == auth uid ada, karena login web mencari
+  // profil lewat id ini. Trigger on_auth_user_created idealnya sudah membuatnya,
+  // tapi bisa gagal senyap kalau npk bentrok dengan baris lama (mis. dari
+  // registrasi Telegram) sehingga login web tidak menemukan profil.
+  const uid = data.user.id;
+  const profile = {
+    id: uid,
+    email: data.user.email || null,
+    nama: String(nama).trim(),
+    npk: String(npk || '').trim() || null,
+    golongan: Number(golongan) || 1,
+    title: String(title || '').trim() || null,
+  };
+  const { error: upErr } = await admin.from('users').upsert(profile, { onConflict: 'id' });
+  if (upErr) {
+    // npk sudah dipakai baris lain -> reparent baris itu ke uid (gabungkan akun).
+    await admin.from('users').update({ id: uid, email: profile.email }).eq('npk', profile.npk);
+  }
+
+  return jsonOk({ userId: uid });
 }
