@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import PhoneFrame from '@/components/PhoneFrame';
+import TaskContextCard from '@/components/TaskContextCard';
+import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
 
 export default function CompleteTask() {
   const { session, profile, loading } = useAuth();
@@ -13,6 +17,8 @@ export default function CompleteTask() {
   const token = session?.access_token;
 
   const [task, setTask] = useState(null);
+  const [loadingTask, setLoadingTask] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [catatan, setCatatan] = useState('');
   const [lampiranUrl, setLampiranUrl] = useState('');
   const [error, setError] = useState('');
@@ -26,10 +32,14 @@ export default function CompleteTask() {
     }
     if (token && profile) {
       apiFetch(token, `/api/tasks?userId=${profile.id}`).then((res) => {
-        if (res.ok) {
-          const found = (res.json?.data || []).find((t) => t.taskId === taskId);
-          setTask(found || null);
+        setLoadingTask(false);
+        if (!res.ok) {
+          setError(apiErrorMessage(res));
+          return;
         }
+        const found = (res.json?.data || []).find((t) => t.taskId === taskId);
+        if (found) setTask(found);
+        else setNotFound(true);
       });
     }
   }, [loading, session, profile, token, taskId, router]);
@@ -56,46 +66,49 @@ export default function CompleteTask() {
 
   return (
     <div className="container">
-      <div className="narrow" style={{ maxWidth: 420, padding: 0 }}>
+      <PhoneFrame>
         <button className="back-btn" onClick={() => router.push('/tech')}>← Kembali</button>
 
-        <div className="card" style={{ padding: '12px 14px', marginBottom: 16, background: 'var(--teal-tint)', border: 'none' }}>
-          <p style={{ fontSize: 12, color: 'var(--teal-dark)', fontWeight: 600 }}>Task</p>
-          <p style={{ fontFamily: 'var(--font-head)', fontSize: 15, color: 'var(--teal-dark)' }}>
-            {task?.judul || 'Task'}
-          </p>
-        </div>
+        {loadingTask ? (
+          <Loading label="Memuat task…" />
+        ) : notFound ? (
+          <EmptyState>Task tidak ditemukan atau sudah selesai. Cek daftar task kamu di dashboard.</EmptyState>
+        ) : (
+          <>
+            <TaskContextCard judul={task?.judul || 'Task'} tone="teal" />
 
-        <form className="card" onSubmit={submit}>
-          <label className="f-label">Catatan penyelesaian</label>
-          <textarea
-            className="f-input"
-            style={{ minHeight: 100 }}
-            value={catatan}
-            onChange={(e) => setCatatan(e.target.value)}
-            placeholder="Sudah diganti bearing, sudah dites jalan normal"
-          />
+            <form className="card" onSubmit={submit}>
+              <label className="f-label">Catatan penyelesaian</label>
+              <textarea
+                className="f-input"
+                style={{ minHeight: 100 }}
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+                placeholder="Sudah diganti bearing, sudah dites jalan normal"
+              />
 
-          <label className="f-label" style={{ marginTop: 12 }}>URL foto (opsional)</label>
-          <input
-            className="f-input"
-            value={lampiranUrl}
-            onChange={(e) => setLampiranUrl(e.target.value)}
-            placeholder="https://.../foto.jpg"
-          />
+              <label className="f-label" style={{ marginTop: 12 }}>URL foto (opsional)</label>
+              <input
+                className="f-input"
+                value={lampiranUrl}
+                onChange={(e) => setLampiranUrl(e.target.value)}
+                placeholder="https://.../foto.jpg"
+              />
 
-          {error ? <p className="err show">{error}</p> : null}
+              {error ? <p className="err show" role="alert">{error}</p> : null}
 
-          <button className="btn btn-primary btn-block" type="submit" disabled={busy} style={{ marginTop: 18 }}>
-            {busy ? 'Mengirim…' : 'Kirim untuk approval'}
-          </button>
+              <button className="btn btn-primary btn-block" type="submit" disabled={busy} style={{ marginTop: 18 }}>
+                {busy ? 'Mengirim…' : 'Kirim untuk approval'}
+              </button>
 
-          <div className="stamp-note">
-            <span>✨</span>
-            <span>Setelah disetujui atasan, poin otomatis nambah ke skor kamu bulan ini.</span>
-          </div>
-        </form>
-      </div>
+              <div className="stamp-note">
+                <span aria-hidden="true">✨</span>
+                <span>Setelah disetujui atasan, poin otomatis nambah ke skor kamu bulan ini.</span>
+              </div>
+            </form>
+          </>
+        )}
+      </PhoneFrame>
     </div>
   );
 }

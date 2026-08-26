@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan } from '@/lib/constants';
+import AppBar from '@/components/AppBar';
+import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
 
 export default function Dashboard() {
   const { session, profile, loading, signOut } = useAuth();
@@ -16,6 +19,8 @@ export default function Dashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [revisiFor, setRevisiFor] = useState(null);
+  const [revisiNote, setRevisiNote] = useState('');
 
   const load = useCallback(async () => {
     if (!token || !profile) return;
@@ -60,17 +65,27 @@ export default function Dashboard() {
     await load();
   }
 
-  async function reject(task) {
+  function openRevisi(task) {
+    setRevisiFor(task.taskId);
+    setRevisiNote('');
+    setError('');
+  }
+
+  async function submitRevisi(task) {
     if (!task.report?.reportId) return;
-    const catatanRevisi = window.prompt('Catatan revisi untuk pelaksana:', 'Tolong perbaiki laporannya');
-    if (catatanRevisi === null) return;
+    if (!revisiNote.trim()) {
+      setError('Isi dulu catatan revisi untuk pelaksana.');
+      return;
+    }
     setBusyId(task.taskId);
     const res = await apiFetch(token, `/api/tasks/${task.taskId}/reports/${task.report.reportId}/reject`, {
       method: 'POST',
-      body: { catatanRevisi },
+      body: { catatanRevisi: revisiNote.trim() },
     });
     if (!res.ok) setError(apiErrorMessage(res));
     setBusyId(null);
+    setRevisiFor(null);
+    setRevisiNote('');
     await load();
   }
 
@@ -78,13 +93,14 @@ export default function Dashboard() {
 
   return (
     <div className="container">
-      <div className="appbar">
-        <div className="brand">🔧 Macha Task</div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-primary" onClick={() => router.push('/tasks/new')}>+ Buat task</button>
-          <button className="link-btn" onClick={() => signOut()}>Keluar</button>
-        </div>
-      </div>
+      <AppBar
+        actions={
+          <>
+            <button className="btn btn-primary" onClick={() => router.push('/tasks/new')}>+ Buat task</button>
+            <button className="link-btn" onClick={() => signOut()}>Keluar</button>
+          </>
+        }
+      />
 
       <div className="greet-blob">
         <h2>Halo, {profile?.nama || 'Atasan'} 👋</h2>
@@ -106,13 +122,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {error ? <p className="err show">{error}</p> : null}
+      {error ? <p className="err show" role="alert">{error}</p> : null}
 
       <div className="section-title">Antrean approval</div>
       {loadingData ? (
-        <p className="muted">Memuat…</p>
+        <Loading />
       ) : pending.length === 0 ? (
-        <div className="empty-state">Belum ada task yang menunggu approval. ✨</div>
+        <EmptyState>Belum ada task yang menunggu approval. ✨</EmptyState>
       ) : (
         pending.map((t) => (
           <div className="card" key={t.taskId} style={{ marginBottom: 12 }}>
@@ -123,21 +139,44 @@ export default function Dashboard() {
             {t.report?.catatan ? (
               <p className="muted" style={{ marginTop: 8 }}>“{t.report.catatan}”</p>
             ) : null}
-            <div className="row" style={{ marginTop: 14 }}>
-              <button className="btn btn-primary" disabled={busyId === t.taskId} onClick={() => approve(t)}>
-                ✅ Setujui
-              </button>
-              <button className="btn btn-danger-outline" disabled={busyId === t.taskId} onClick={() => reject(t)}>
-                ↩️ Revisi
-              </button>
-            </div>
+
+            {revisiFor === t.taskId ? (
+              <div style={{ marginTop: 12 }}>
+                <label className="f-label" htmlFor={`revisi-${t.taskId}`}>Catatan revisi untuk pelaksana</label>
+                <textarea
+                  id={`revisi-${t.taskId}`}
+                  className="f-input"
+                  style={{ minHeight: 70 }}
+                  value={revisiNote}
+                  onChange={(e) => setRevisiNote(e.target.value)}
+                  placeholder="Misal: foto belum jelas, ambil ulang dari sisi kanan mesin"
+                />
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn btn-danger-outline" disabled={busyId === t.taskId} onClick={() => submitRevisi(t)}>
+                    {busyId === t.taskId ? 'Mengirim…' : 'Kirim revisi'}
+                  </button>
+                  <button className="link-btn" disabled={busyId === t.taskId} onClick={() => setRevisiFor(null)}>
+                    Batal
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="row" style={{ marginTop: 14 }}>
+                <button className="btn btn-primary" disabled={busyId === t.taskId} onClick={() => approve(t)}>
+                  <span aria-hidden="true">✅</span> Setujui
+                </button>
+                <button className="btn btn-danger-outline" disabled={busyId === t.taskId} onClick={() => openRevisi(t)}>
+                  <span aria-hidden="true">↩️</span> Revisi
+                </button>
+              </div>
+            )}
           </div>
         ))
       )}
 
       <div className="section-title">Statistik tim</div>
       {team.length === 0 ? (
-        <div className="empty-state">Belum ada anggota tim. Bawahan akan muncul di sini setelah di-assign ke kamu.</div>
+        <EmptyState>Belum ada anggota tim. Bawahan akan muncul di sini setelah di-assign ke kamu.</EmptyState>
       ) : (
         <div className="card" style={{ padding: 6 }}>
           <table className="tidy">

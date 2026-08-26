@@ -49,32 +49,29 @@ export default function Login() {
 
   return (
     <div className="narrow">
-      <div className="phone">
-        <div className="phone-inner">
-          <div className="brand" style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 20, color: 'var(--teal-dark)', marginBottom: 6 }}>
-            Macha Task
-          </div>
-          <p className="muted" style={{ marginBottom: 18 }}>
-            Task tracker tim Production Engineering
-          </p>
+<div className="phone">
+            <div className="phone-inner">
+              <div className="brand" style={{ fontSize: 20, marginBottom: 6 }}>
+                <span aria-hidden="true">🔧</span> Macha Task
+              </div>
+              <p className="muted" style={{ marginBottom: 18 }}>
+                Task tracker tim Production Engineering
+              </p>
 
-          <div className="tabbar" style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-            {['masuk', 'daftar'].map((m) => (
-              <button
-                key={m}
-                type="button"
-                className="btn"
-                onClick={() => setMode(m)}
-                style={
-                  mode === m
-                    ? { background: 'var(--teal)', color: '#fff', borderColor: 'var(--teal)', flex: 1 }
-                    : { flex: 1 }
-                }
-              >
-                {m === 'masuk' ? 'Masuk' : 'Daftar'}
-              </button>
-            ))}
-          </div>
+              <div className="tabbar" role="tablist" aria-label="Masuk atau daftar">
+                {['masuk', 'daftar'].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === m}
+                    className={`tab ${mode === m ? 'active' : ''}`}
+                    onClick={() => setMode(m)}
+                  >
+                    {m === 'masuk' ? 'Masuk' : 'Daftar'}
+                  </button>
+                ))}
+              </div>
 
           <form onSubmit={submit}>
             <label className="f-label">Email</label>
@@ -107,7 +104,7 @@ export default function Login() {
               </>
             )}
 
-            {error ? <p className="err show" style={{ marginTop: 10 }}>{error}</p> : null}
+            {error ? <p className="err show" style={{ marginTop: 10 }} role="alert">{error}</p> : null}
 
             <button className="btn btn-primary btn-block" type="submit" disabled={busy} style={{ marginTop: 18 }}>
               {busy ? 'Memproses…' : mode === 'masuk' ? 'Masuk' : 'Daftar'}

@@ -12,6 +12,8 @@ export default function NewTask() {
   const token = session?.access_token;
 
   const [team, setTeam] = useState([]);
+  const [loadingTeam, setLoadingTeam] = useState(true);
+  const [teamError, setTeamError] = useState('');
   const [form, setForm] = useState({ judul: '', deskripsi: '', ditugaskanKe: '', bobotPoin: '5', deadline: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -28,7 +30,12 @@ export default function NewTask() {
     }
     if (token && profile) {
       apiFetch(token, `/api/teams/${profile.id}/stats`).then((res) => {
-        if (res.ok) setTeam(res.json?.data || []);
+        setLoadingTeam(false);
+        if (!res.ok) {
+          setTeamError(apiErrorMessage(res));
+          return;
+        }
+        setTeam(res.json?.data || []);
       });
     }
   }, [loading, session, profile, token, router]);
@@ -78,14 +85,20 @@ export default function NewTask() {
         <textarea className="f-input" style={{ minHeight: 80 }} value={form.deskripsi} onChange={set('deskripsi')} placeholder="Cek kalibrasi axis Z, ganti spindle bearing" />
 
         <label className="f-label" style={{ marginTop: 12 }}>Ditugaskan ke</label>
-        <select className="f-input" value={form.ditugaskanKe} onChange={set('ditugaskanKe')}>
-          <option value="">— Pilih anggota tim —</option>
-          {team.map((m) => (
-            <option key={m.userId} value={m.userId}>
-              {m.nama} ({m.title})
-            </option>
-          ))}
-        </select>
+        {loadingTeam ? (
+          <p className="muted">Memuat anggota tim…</p>
+        ) : teamError ? (
+          <p className="muted" role="alert">{teamError}. Coba buka kembali halaman ini.</p>
+        ) : (
+          <select className="f-input" value={form.ditugaskanKe} onChange={set('ditugaskanKe')}>
+            <option value="">{team.length === 0 ? 'Belum ada anggota tim' : '— Pilih anggota tim —'}</option>
+            {team.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.nama} ({m.title})
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="row" style={{ marginTop: 12 }}>
           <div style={{ flex: 1 }}>
@@ -98,7 +111,7 @@ export default function NewTask() {
           </div>
         </div>
 
-        {error ? <p className="err show">{error}</p> : null}
+        {error ? <p className="err show" role="alert">{error}</p> : null}
 
         <button className="btn btn-primary btn-block" type="submit" disabled={busy} style={{ marginTop: 18 }}>
           {busy ? 'Mengirim…' : 'Buat task'}

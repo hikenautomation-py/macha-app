@@ -6,6 +6,10 @@ import { useAuth } from '@/components/AuthContext';
 import TicketCard from '@/components/TicketCard';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan } from '@/lib/constants';
+import PhoneFrame from '@/components/PhoneFrame';
+import AppBar from '@/components/AppBar';
+import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
 
 const FILTERS = [
   { key: 'all', label: 'Semua' },
@@ -65,51 +69,50 @@ export default function Tech() {
 
   return (
     <div className="container">
-      <div className="appbar">
-        <div className="brand">🔧 Macha Task</div>
-        <button className="link-btn" onClick={() => signOut()}>Keluar</button>
-      </div>
+      <PhoneFrame>
+        <AppBar actions={<button className="link-btn" onClick={() => signOut()}>Keluar</button>} />
 
-      <div className="greet-blob">
-        <h2>Halo, {profile?.nama || 'Tech'} 👋</h2>
-        <p>Poin bulan ini: <b className="mono">{poin.totalPoin}</b> · {poin.jumlahTaskSelesai} task selesai</p>
-      </div>
+        <div className="greet-blob">
+          <h2>Halo, {profile?.nama || 'Tech'} 👋</h2>
+          <p>Poin bulan ini: <b className="mono">{poin.totalPoin}</b> · {poin.jumlahTaskSelesai} task selesai</p>
+        </div>
 
-      {error ? <p className="err show">{error}</p> : null}
+        {error ? <p className="err show" role="alert">{error}</p> : null}
 
-      <div className="row" style={{ flexWrap: 'wrap', marginBottom: 14 }}>
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className="btn"
-            onClick={() => setFilter(f.key)}
-            style={filter === f.key ? { background: 'var(--teal)', color: '#fff', borderColor: 'var(--teal)' } : {}}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+        <div className="row" style={{ flexWrap: 'wrap', marginBottom: 14 }}>
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className="btn"
+              aria-pressed={filter === f.key}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-      {loadingData ? (
-        <p className="muted">Memuat…</p>
-      ) : visible.length === 0 ? (
-        <div className="empty-state">Belum ada task. Santai dulu, atau tanya atasan kamu. 🙂</div>
-      ) : (
-        visible.map((t) => (
-          <TicketCard key={t.taskId} task={t}>
-            {ACTIONABLE.includes(t.status) ? (
-              <div className="row" style={{ marginTop: 12 }}>
-                <button className="btn btn-primary" onClick={() => router.push(`/tasks/${t.taskId}/complete`)}>
-                  ✔ Selesaikan
-                </button>
-                <button className="btn btn-danger-outline" onClick={() => router.push(`/tasks/${t.taskId}/problem`)}>
-                  🚨 Lapor masalah
-                </button>
-              </div>
-            ) : null}
-          </TicketCard>
-        ))
-      )}
+        {loadingData ? (
+          <Loading />
+        ) : visible.length === 0 ? (
+          <EmptyState>Belum ada task. Santai dulu, atau tanya atasan kamu. 🙂</EmptyState>
+        ) : (
+          visible.map((t) => (
+            <TicketCard key={t.taskId} task={t}>
+              {ACTIONABLE.includes(t.status) ? (
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn btn-primary" onClick={() => router.push(`/tasks/${t.taskId}/complete`)}>
+                    <span aria-hidden="true">✔</span> Selesaikan
+                  </button>
+                  <button className="btn btn-danger-outline" onClick={() => router.push(`/tasks/${t.taskId}/problem`)}>
+                    <span aria-hidden="true">🚨</span> Lapor masalah
+                  </button>
+                </div>
+              ) : null}
+            </TicketCard>
+          ))
+        )}
+      </PhoneFrame>
     </div>
   );
 }

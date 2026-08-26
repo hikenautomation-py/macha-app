@@ -166,12 +166,58 @@ table.tidy td { padding: 11px 14px; }
 table.tidy tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
 table.tidy tr:first-child td { color: var(--ink-soft); font-weight: 600; font-size: 12px; }
 
+/* ---------- Tabbar (login) ---------- */
+.tabbar { display: flex; gap: 8px; margin-bottom: 18px; }
+.tab {
+  flex: 1; text-align: center;
+  font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer;
+  border-radius: var(--radius-ctrl); padding: 10px 16px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  transition: all .15s;
+}
+.tab:hover { background: var(--surface-tint); }
+.tab.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+/* ---------- Tombol coral solid ---------- */
+button.btn-danger { background: var(--coral); border-color: var(--coral); color: #fff; }
+button.btn-danger:hover { background: #cf5338; border-color: #cf5338; }
+
+/* ---------- Kartu konteks task (complete/problem) ---------- */
+.task-context { margin-bottom: 16px; padding: 12px 14px; border: none; }
+.task-context .tc-label { font-size: 12px; font-weight: 600; }
+.task-context .tc-title { font-family: var(--font-head); font-weight: 600; font-size: 15px; }
+.task-context.teal { background: var(--teal-tint); }
+.task-context.teal .tc-label, .task-context.teal .tc-title { color: var(--teal-dark); }
+.task-context.coral { background: var(--coral-tint); }
+.task-context.coral .tc-label, .task-context.coral .tc-title { color: var(--coral-ink); }
+
+/* ---------- Spinner ---------- */
+.spinner {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 2.5px solid var(--border); border-top-color: var(--teal);
+  border-radius: 50%; animation: spin .7s linear infinite;
+  display: inline-block; vertical-align: -4px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Aksesibilitas: fokus keyboard & state aktif ---------- */
+button.btn:focus-visible, .tab:focus-visible, .urgency-opt:focus-visible,
+.link-btn:focus-visible, .back-btn:focus-visible {
+  outline: 2px solid var(--teal); outline-offset: 2px;
+}
+button.btn-danger:focus-visible { outline-color: var(--coral); }
+button[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: #fff; }
+button[aria-pressed="true"]:hover { background: var(--teal-dark); }
+
 /* ---------- App header / nav ---------- */
 .appbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 0; margin-bottom: 8px;
 }
-.appbar .brand { font-family: var(--font-head); font-weight: 700; font-size: 18px; color: var(--teal-dark); display: flex; align-items: center; gap: 8px; }
+.appbar .brand, .brand {
+  font-family: var(--font-head); font-weight: 700; font-size: 18px; color: var(--teal-dark);
+  display: flex; align-items: center; gap: 8px;
+}
 .link-btn { border: none; background: none; color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; font-family: var(--font-body); }
 
 .empty-state {

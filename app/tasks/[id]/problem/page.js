@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import PhoneFrame from '@/components/PhoneFrame';
+import TaskContextCard from '@/components/TaskContextCard';
+import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
 
 const URGENSI = [
   { key: 'bisa_nunggu', label: 'Bisa nunggu', cls: 'picked-low' },
@@ -19,6 +23,8 @@ export default function ProblemTask() {
   const token = session?.access_token;
 
   const [task, setTask] = useState(null);
+  const [loadingTask, setLoadingTask] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [urgensi, setUrgensi] = useState('perlu_hari_ini');
   const [deskripsi, setDeskripsi] = useState('');
   const [error, setError] = useState('');
@@ -32,10 +38,14 @@ export default function ProblemTask() {
     }
     if (token && profile) {
       apiFetch(token, `/api/tasks?userId=${profile.id}`).then((res) => {
-        if (res.ok) {
-          const found = (res.json?.data || []).find((t) => t.taskId === taskId);
-          setTask(found || null);
+        setLoadingTask(false);
+        if (!res.ok) {
+          setError(apiErrorMessage(res));
+          return;
         }
+        const found = (res.json?.data || []).find((t) => t.taskId === taskId);
+        if (found) setTask(found);
+        else setNotFound(true);
       });
     }
   }, [loading, session, profile, token, taskId, router]);
@@ -62,57 +72,62 @@ export default function ProblemTask() {
 
   return (
     <div className="container">
-      <div className="narrow" style={{ maxWidth: 420, padding: 0 }}>
+      <PhoneFrame>
         <button className="back-btn" onClick={() => router.push('/tech')}>← Kembali</button>
 
-        <div className="card" style={{ padding: '12px 14px', marginBottom: 16, background: 'var(--coral-tint)', border: 'none' }}>
-          <p style={{ fontSize: 12, color: 'var(--coral-ink)', fontWeight: 600 }}>Task</p>
-          <p style={{ fontFamily: 'var(--font-head)', fontSize: 15, color: 'var(--coral-ink)' }}>
-            {task?.judul || 'Task'}
-          </p>
-        </div>
+        {loadingTask ? (
+          <Loading label="Memuat task…" />
+        ) : notFound ? (
+          <EmptyState>Task tidak ditemukan atau sudah selesai. Cek daftar task kamu di dashboard.</EmptyState>
+        ) : (
+          <>
+            <TaskContextCard judul={task?.judul || 'Task'} tone="coral" />
 
-        <form className="card" onSubmit={submit}>
-          <label className="f-label">Seberapa mendesak?</label>
-          <div className="urgency-pick">
-            {URGENSI.map((u) => (
+            <form className="card" onSubmit={submit}>
+              <label className="f-label">Seberapa mendesak?</label>
+              <div className="urgency-pick" role="radiogroup" aria-label="Tingkat urgensi">
+                {URGENSI.map((u) => (
+                  <button
+                    key={u.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={urgensi === u.key}
+                    className={`urgency-opt ${urgensi === u.key ? u.cls : ''}`}
+                    onClick={() => setUrgensi(u.key)}
+                  >
+                    {u.label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="f-label" style={{ marginTop: 14 }}>Apa masalahnya?</label>
+              <textarea
+                className="f-input"
+                style={{ minHeight: 90 }}
+                value={deskripsi}
+                onChange={(e) => setDeskripsi(e.target.value)}
+                placeholder="Jelaskan kendala yang ditemui"
+              />
+
+              {error ? <p className="err show" role="alert">{error}</p> : null}
+
               <button
-                key={u.key}
-                type="button"
-                className={`urgency-opt ${urgensi === u.key ? u.cls : ''}`}
-                onClick={() => setUrgensi(u.key)}
+                className="btn btn-danger btn-block"
+                type="submit"
+                disabled={busy}
+                style={{ marginTop: 18 }}
               >
-                {u.label}
+                {busy ? 'Mengirim…' : 'Kirim ke atasan'}
               </button>
-            ))}
-          </div>
 
-          <label className="f-label" style={{ marginTop: 14 }}>Apa masalahnya?</label>
-          <textarea
-            className="f-input"
-            style={{ minHeight: 90 }}
-            value={deskripsi}
-            onChange={(e) => setDeskripsi(e.target.value)}
-            placeholder="Jelaskan kendala yang ditemui"
-          />
-
-          {error ? <p className="err show">{error}</p> : null}
-
-          <button
-            className="btn btn-block"
-            type="submit"
-            disabled={busy}
-            style={{ marginTop: 18, background: 'var(--coral)', color: '#fff', borderColor: 'var(--coral)' }}
-          >
-            {busy ? 'Mengirim…' : 'Kirim ke atasan'}
-          </button>
-
-          <div className="stamp-note coral">
-            <span>🔔</span>
-            <span>Atasan langsung dapat notifikasi begitu ini terkirim, nggak perlu nunggu antrian biasa.</span>
-          </div>
-        </form>
-      </div>
+              <div className="stamp-note coral">
+                <span aria-hidden="true">🔔</span>
+                <span>Atasan langsung dapat notifikasi begitu ini terkirim, nggak perlu nunggu antrian biasa.</span>
+              </div>
+            </form>
+          </>
+        )}
+      </PhoneFrame>
     </div>
   );
 }

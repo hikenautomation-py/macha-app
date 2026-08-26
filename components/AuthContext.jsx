@@ -33,7 +33,9 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle()
-        .then(({ data }) => setProfile(data));
+        .then(({ data }) => {
+          if (data) setProfile(data);
+        });
     } else {
       setProfile(null);
     }
