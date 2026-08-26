@@ -64,6 +64,11 @@ export async function POST(req) {
     return jsonOk({ received: true });
   }
 
+  // 2c) Teks lanjutan dari aksi tombol task (Lapor / Update / Selesai).
+  if (await handleTaskContextInput(admin, msg, chatId, text)) {
+    return jsonOk({ received: true });
+  }
+
   // 3) Langkah registrasi berjalan (state machine per chat_id)
   const { data: pending } = await admin
     .from('pending_registrations')
@@ -86,7 +91,7 @@ export async function POST(req) {
   return jsonOk({ received: true });
 }
 
-// ---------- Callback approve/reject ----------
+// ---------- Callback approve/reject & aksi task ----------
 async function handleCallback(admin, cq) {
   const data = cq.data || '';
   const messageId = cq.message?.message_id;
@@ -99,9 +104,139 @@ async function handleCallback(admin, cq) {
     const chatId = data.slice('reject_'.length);
     await answerCallback(cq.id, 'Ditolak ❌');
     await rejectRegistration(admin, chatId, cq, messageId);
+  } else if (data.startsWith('report_')) {
+    await startTaskAction(admin, cq, data.slice('report_'.length), 'lapor');
+  } else if (data.startsWith('update_')) {
+    await startTaskAction(admin, cq, data.slice('update_'.length), 'update');
+  } else if (data.startsWith('complete_')) {
+    await startTaskAction(admin, cq, data.slice('complete_'.length), 'selesai');
   } else {
     await answerCallback(cq.id, '');
   }
+}
+
+// ---------- Aksi tombol task baru (Lapor / Update / Selesai) ----------
+// Tombol inline tidak bisa memunculkan input teks, jadi setelah tombol ditekan
+// kita simpan konteks aksi di tabel telegram_convos lalu minta user mengirim
+// teks/foto berikutnya (diproses oleh handleTaskContextInput).
+const TASK_ACTION_PROMPT = {
+  lapor:
+    '🚨 Oke, ceritakan <b>masalah</b>-nya. Boleh awali dengan tingkat urgensi: ' +
+    '<code>mendesak</code>, <code>perlu hari ini</code>, atau <code>bisa nunggu</code>.\n\nContoh: <i>mendesak Line 2 downtime</i>',
+  update:
+    '📝 Update progress? Kirim catatan singkatnya ya.\nContoh: <i>Sudah ganti bearing, tinggal kalibrasi</i>',
+  selesai:
+    '✅ Nice! Kirim <b>catatan penyelesaian</b>-nya ya (boleh sertakan foto).\nContoh: <i>Sudah dites jalan normal</i>',
+};
+
+async function startTaskAction(admin, cq, taskId, action) {
+  const chatId = cq.message?.chat?.id;
+  const fromId = String(cq.from?.id || '');
+
+  const { data: task } = await admin.from('tasks').select('*').eq('id', taskId).maybeSingle();
+  if (!task) {
+    await answerCallback(cq.id, 'Task tidak ditemukan');
+    return;
+  }
+
+  // Hanya pelaksana task (atau admin) yang boleh menjalankan aksi.
+  const { data: actor } = await admin.from('users').select('id').eq('telegram_chat_id', fromId).maybeSingle();
+  const isOwner = actor?.id === task.assigned_to;
+  const isAdminActor = actor && isAtasan(actor);
+  if (!isOwner && !isAdminActor) {
+    await answerCallback(cq.id, 'Kamu bukan pelaksana task ini');
+    return;
+  }
+
+  await admin
+    .from('telegram_convos')
+    .upsert({ chat_id: String(chatId), task_id: taskId, action }, { onConflict: 'chat_id' });
+
+  await answerCallback(cq.id, '');
+  await sendTelegramMessage(chatId, TASK_ACTION_PROMPT[action] || '');
+}
+
+// Proses pesan lanjutan setelah tombol task ditekan. return true bila terpakai.
+async function handleTaskContextInput(admin, msg, chatId, text) {
+  const { data: ctx } = await admin
+    .from('telegram_convos')
+    .select('*')
+    .eq('chat_id', String(chatId))
+    .maybeSingle();
+  if (!ctx) return false;
+
+  const taskId = ctx.task_id;
+  const { data: task } = await admin.from('tasks').select('*').eq('id', taskId).maybeSingle();
+
+  // hapus konteks apapun hasil akhirnya (hindari penumpukan state)
+  await admin.from('telegram_convos').delete().eq('chat_id', String(chatId));
+
+  if (!task) {
+    await sendTelegramMessage(chatId, 'Task sudah tidak ada.');
+    return true;
+  }
+
+  if (ctx.action === 'lapor') {
+    const deskripsi = text?.trim() || 'Dilaporkan via bot tanpa keterangan.';
+    const firstWord = deskripsi.split(/\s+/)[0].toLowerCase();
+    const urgensi = normalizeUrgency(firstWord) || 'perlu_hari_ini';
+    const isUrgensi = !!normalizeUrgency(firstWord);
+
+    await admin.from('task_problems').insert({
+      task_id: taskId,
+      user_id: task.assigned_to,
+      urgency: urgensi,
+      description: isUrgensi ? deskripsi.split(/\s+/).slice(1).join(' ') : deskripsi,
+      status: 'open',
+    });
+
+    await sendTelegramMessage(chatId, `🚨 Problem report terkirim (${URGENCY_LABEL[urgensi]}). Atasan akan segera menindaklanjuti.`);
+    if (task.assigned_by) {
+      const { data: atasan } = await admin
+        .from('users')
+        .select('telegram_chat_id')
+        .eq('id', task.assigned_by)
+        .maybeSingle();
+      if (atasan?.telegram_chat_id) {
+        await notifyTelegram(admin, atasan.telegram_chat_id, `🚨 <b>PROBLEM REPORT</b> — ${URGENCY_LABEL[urgensi]}\n${task.title}\n\n${isUrgensi ? deskripsi.split(/\s+/).slice(1).join(' ') : deskripsi}`);
+      }
+    }
+    return true;
+  }
+
+  if (ctx.action === 'update') {
+    await admin.from('tasks').update({ status: 'in_progress' }).eq('id', taskId);
+    const note = text?.trim() || 'updating…';
+    await sendTelegramMessage(chatId, `📝 Oke, progress dicatat: <i>${note}</i>\nTask kamu sekarang <b>Sedang dikerjakan</b>.`);
+    return true;
+  }
+
+  if (ctx.action === 'selesai') {
+    const catatan = text?.trim() || 'Selesai dikerjakan via bot.';
+    await admin.from('task_reports').insert({
+      task_id: taskId,
+      user_id: task.assigned_to,
+      progress_note: catatan,
+      photo_url: null,
+      status: 'report_submitted',
+    });
+    await admin.from('tasks').update({ status: 'report_submitted' }).eq('id', taskId);
+    await sendTelegramMessage(chatId, '✅ Laporan selesai terkirim. Menunggu approval atasan ya.');
+
+    if (task.assigned_by) {
+      const { data: atasan } = await admin
+        .from('users')
+        .select('telegram_chat_id')
+        .eq('id', task.assigned_by)
+        .maybeSingle();
+      if (atasan?.telegram_chat_id) {
+        await notifyTelegram(admin, atasan.telegram_chat_id, `✅ <b>Completion report</b> (via bot)\n${task.title}\n\n${catatan}\n\nMenunggu approval.`);
+      }
+    }
+    return true;
+  }
+
+  return false;
 }
 
 // ---------- Alur /start ----------

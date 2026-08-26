@@ -101,6 +101,14 @@ Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook 
 > Saat user mengetik `/` di chat, menu perintah bot otomatis muncul (`/start` dan `/help`)
 > berkat `setMyCommands`. Menu disegarkan otomatis setiap ada perintah setelah deploy.
 
+> **Notifikasi task baru** di chat pribadi pelaksana kini punya 3 tombol aksi:
+> - `🚨 Lapor` → lapor masalah task (bisa awali dengan urgensi: mendesak / perlu hari ini / bisa nunggu)
+> - `📝 Update` → catat progress, task di-set menjadi *sedang dikerjakan*
+> - `✅ Selesai` → kirim laporan penyelesaian (status jadi *menunggu approval*)
+>
+> Setelah tombol ditekan, bot menanyakan keterangan lanjutan — balas di chat bersangkutan.
+> Broadcast ke group/channel tidak memuat tombol. Butuh migrasi `0008` + deploy.
+
 > Selain perintah di atas, user tidak perlu mengetik perintah lain — laporan
 > dikirim dengan cara **membalas (reply)** pesan notifikasi task dari bot (lihat bawah).
 

@@ -1,7 +1,7 @@
 import { requireAtasan, requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { mapTask } from '@/lib/mappers';
-import { notifyTelegram } from '@/lib/telegram';
+import { sendTelegramMessage, notifyTelegram } from '@/lib/telegram';
 import { emailTaskAssigned } from '@/lib/email';
 
 // POST /api/tasks — buat task baru (golongan >= 5)
@@ -42,11 +42,21 @@ export async function POST(req) {
 
   if (target?.telegram_chat_id) {
     const poin = Number(bobotPoin) || 0;
-    await notifyTelegram(
-      admin,
-      target.telegram_chat_id,
-      `📋 <b>Task baru</b>\n${judul}${deadline ? `\nDeadline: ${deadline}` : ''}\nBobot: ${poin} poin\n\n🔖 #task_${task.id}`
-    );
+    const text = `📋 <b>Task baru</b>\n${judul}${deadline ? `\nDeadline: ${deadline}` : ''}\nBobot: ${poin} poin\n\n🔖 #task_${task.id}`;
+
+    // Chat pribadi pelaksana: sertakan tombol aksi cepat.
+    await sendTelegramMessage(target.telegram_chat_id, text, {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🚨 Lapor', callback_data: `report_${task.id}` },
+          { text: '📝 Update', callback_data: `update_${task.id}` },
+          { text: '✅ Selesai', callback_data: `complete_${task.id}` },
+        ]],
+      },
+    });
+
+    // Broadcast ke group/channel terdaftar: tanpa tombol (biar tak tertekan asal).
+    await notifyTelegram(admin, null, text);
   }
 
   // Email notifikasi task baru ke pelaksana.
