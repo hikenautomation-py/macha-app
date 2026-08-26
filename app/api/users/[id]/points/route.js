@@ -1,5 +1,6 @@
 import { requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
+import { isAtasan } from '@/lib/constants';
 
 // GET /api/users/{id}/points?month=yyyy-mm
 // Semua user hanya boleh lihat poin sendiri; atasan boleh lihat bawahan.
@@ -7,7 +8,7 @@ export async function GET(req, { params }) {
   const { profile, error } = await requireAuth(req);
   if (error) return error;
 
-  if (profile.golongan < 5 && params.id !== profile.id) {
+  if (!isAtasan(profile) && params.id !== profile.id) {
     return jsonError(403, 'PERMISSION_DENIED', 'Kamu hanya bisa melihat poin sendiri');
   }
 

@@ -36,7 +36,7 @@
 |---|---|---|
 | Display / heading | `Baloo 2` (500/600/700) | Judul halaman, judul task, greeting |
 | Body | `Plus Jakarta Sans` (400/500/600/700) | Paragraf, label, tombol |
-| Data / angka | `JetBrains Mono` (500/600) | Poin, NIK, angka statistik |
+| Data / angka | `JetBrains Mono` (500/600) | Poin, NPK, angka statistik |
 
 Font direferensikan lewat system font stack di `app/globals.css` (`--font-head`, `--font-body`, `--font-mono`): nama font target (Baloo 2 / Plus Jakarta Sans / JetBrains Mono) dipakai sebagai preferensi pertama, lalu fallback ke font sistem. Tidak lagi memakai `next/font/google` agar `next build` tidak bergantung pada unduhan font dari jaringan (rawan hang saat jaringan lambat).
 
@@ -95,7 +95,7 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
 
 ## 6. Halaman & urutan (sesuai mockup)
 
-1. **Login / Registrasi** — form nama, NIK, golongan + stamp note "menunggu approval".
+1. **Login / Registrasi** — form nama, NPK, golongan, title/jabatan + stamp note "menunggu approval".
 2. **Dashboard atasan** — greeting, tombol "Buat task baru", 4 metric card, antrian approval (ticket), problem report (ticket coral), tabel statistik tim.
 3. **Dashboard technician** — greeting blob, daftar "Task kamu hari ini" (ticket), 2 tombol aksi (Lapor selesai / Lapor masalah), kartu "Poin bulan ini".
 4. **Lapor selesai** — kartu konteks task (teal tint), textarea catatan (wajib), upload foto (opsional), tombol "Kirim untuk approval", stamp note poin.

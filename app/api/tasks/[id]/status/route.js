@@ -1,4 +1,4 @@
-import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { mapTask } from '@/lib/mappers';
 
@@ -6,7 +6,7 @@ const VALID = ['assigned', 'in_progress', 'report_submitted', 'approved', 'rejec
 
 // PATCH /api/tasks/{id}/status — ubah status task (golongan >= 5)
 export async function PATCH(req, { params }) {
-  const { error } = await requireGolongan(req, 5);
+  const { error } = await requireAtasan(req);
   if (error) return error;
 
   const body = await req.json().catch(() => null);

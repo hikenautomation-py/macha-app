@@ -1,11 +1,11 @@
-import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { notifyTelegram } from '@/lib/telegram';
 import { emailTaskApproved } from '@/lib/email';
 
 // POST /api/tasks/{id}/reports/{reportId}/approve (atasan terkait, golongan >= 5)
 export async function POST(req, { params }) {
-  const { profile, error } = await requireGolongan(req, 5);
+  const { profile, error } = await requireAtasan(req);
   if (error) return error;
 
   const admin = createAdminClient();

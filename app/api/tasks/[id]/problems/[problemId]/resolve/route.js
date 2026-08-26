@@ -1,9 +1,9 @@
-import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 
 // POST /api/tasks/{id}/problems/{problemId}/resolve (golongan >= 5)
 export async function POST(req, { params }) {
-  const { error } = await requireGolongan(req, 5);
+  const { error } = await requireAtasan(req);
   if (error) return error;
 
   const body = await req.json().catch(() => null);

@@ -17,7 +17,7 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 - [ ] Tentukan admin approval registrasi, dapatkan `chat_id`-nya
 - [ ] Daftar akun email service (Resend/SendGrid)
 - [ ] Setup repository, struktur folder, CI dasar (lint, format)
-- [ ] Konfirmasi daftar nama, NIK, dan golongan seluruh anggota tim untuk data awal
+- [ ] Konfirmasi daftar nama, NPK, dan golongan seluruh anggota tim untuk data awal
 
 **Output**: environment siap, tidak ada blocker akses di sprint berikutnya.
 
@@ -40,7 +40,7 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 **Tujuan**: alur paling kritikal (siapa yang boleh pakai bot) selesai dan teruji.
 
 - Implementasi webhook Telegram (`/telegramWebhook`)
-- Alur `/start` → tanya nama/NIK/golongan → simpan ke `pending_registrations`
+- Alur `/start` → tanya nama/NPK/golongan → simpan ke `pending_registrations`
 - Notifikasi ke admin dengan tombol inline Setujui/Tolak
 - Implementasi `registerApprove` dan `registerReject`
 - Testing end-to-end pakai akun Telegram asli tim (bukan cuma emulator)

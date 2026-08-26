@@ -1,4 +1,4 @@
-import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { mapTask, mapReport } from '@/lib/mappers';
 
@@ -6,7 +6,7 @@ import { mapTask, mapReport } from '@/lib/mappers';
 // Setiap task disertai laporan pending-nya (reportId + catatan + nama pelapor),
 // supaya dashboard atasan bisa langsung menampilkan tombol approve/reject.
 export async function GET(req) {
-  const { profile, error } = await requireGolongan(req, 5);
+  const { profile, error } = await requireAtasan(req);
   if (error) return error;
 
   const url = new URL(req.url);

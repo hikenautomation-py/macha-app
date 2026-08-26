@@ -1,10 +1,10 @@
-import { requireGolongan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { golonganLabel } from '@/lib/constants';
+import { userTitle } from '@/lib/constants';
 
 // GET /api/teams/{id}/stats?month=yyyy-mm — statistik bawahan (golongan >= 5)
 export async function GET(req, { params }) {
-  const { profile, error } = await requireGolongan(req, 5);
+  const { profile, error } = await requireAtasan(req);
   if (error) return error;
 
   const atasanId = params.id || profile.id;
@@ -14,7 +14,7 @@ export async function GET(req, { params }) {
   const admin = createAdminClient();
   const { data: bawahan, error: err } = await admin
     .from('users')
-    .select('id, nama, golongan')
+    .select('id, nama, golongan, title')
     .eq('atasan_id', atasanId);
 
   if (err) return jsonError(500, 'INTERNAL', err.message);
@@ -32,7 +32,7 @@ export async function GET(req, { params }) {
     }
     const { data: rows } = await q;
     const poin = (rows || []).reduce((s, r) => s + (r.points || 0), 0);
-    result.push({ userId: b.id, nama: b.nama, golongan: golonganLabel(b.golongan), poin });
+    result.push({ userId: b.id, nama: b.nama, golongan: b.golongan, title: userTitle(b), poin });
   }
 
   return jsonOk(result);

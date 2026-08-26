@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { isAtasan } from '@/lib/constants';
 
 export default function Dashboard() {
   const { session, profile, loading, signOut } = useAuth();
@@ -40,7 +41,7 @@ export default function Dashboard() {
       router.replace('/login');
       return;
     }
-    if (profile && profile.golongan < 5) {
+    if (profile && !isAtasan(profile)) {
       router.replace('/tech');
       return;
     }
@@ -143,13 +144,13 @@ export default function Dashboard() {
             <tbody>
               <tr>
                 <td>Nama</td>
-                <td>Golongan</td>
+                <td>Jabatan</td>
                 <td style={{ textAlign: 'right' }}>Poin</td>
               </tr>
               {team.map((m) => (
                 <tr key={m.userId}>
                   <td>{m.nama}</td>
-                  <td>{m.golongan}</td>
+                  <td>{m.title}</td>
                   <td className="mono" style={{ textAlign: 'right' }}>{m.poin}</td>
                 </tr>
               ))}

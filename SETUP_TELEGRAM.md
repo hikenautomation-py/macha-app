@@ -105,9 +105,10 @@ Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook 
 1. Karyawan membuka bot di chat pribadi: `t.me/<username_bot>` → tekan **Start**
    (atau kirim `/start`).
 2. Bot bertanya **nama lengkap** → jawab dengan nama.
-3. Bot bertanya **NIK** → jawab dengan NIK karyawan.
-4. Bot bertanya **golongan** (angka 1–7) → jawab angka, contoh `3` untuk technician.
-5. Bot menyimpan data ke `pending_registrations` dan mengirim notifikasi ke
+3. Bot bertanya **NPK** → jawab dengan NPK karyawan.
+4. Bot bertanya **golongan** (angka 1–7) → jawab angka.
+5. Bot bertanya **title/jabatan** → jawab angka: 1. Intern, 2. Operator, 3. Technician, 4. SPV, 5. Assistant Manager, 6. Section Manager.
+6. Bot menyimpan data ke `pending_registrations` dan mengirim notifikasi ke
    **admin approval** (chat `TELEGRAM_ADMIN_CHAT_ID`) dengan tombol inline:
    - ✅ **Setujui** → user dipindah ke tabel `users`, `chat_id`-nya terhubung ke akun.
    - ❌ **Tolak** → pendaftaran dihapus, user mendapat pesan penolakan.

@@ -103,7 +103,7 @@ Status enum: `assigned` → `in_progress` → `report_submitted` → `approved` 
 
 ## 6. Alur utama
 
-1. **Registrasi Telegram**: user `/start` → isi nama/NIK/golongan → `pending_registrations` → admin tap inline button Setujui/Tolak → `registerApprove` memindahkan ke `users`.
+1. **Registrasi Telegram**: user `/start` → isi nama/NPK/golongan → `pending_registrations` → admin tap inline button Setujui/Tolak → `registerApprove` memindahkan ke `users`.
 2. **Assign task**: atasan (golongan ≥ 5) `POST /api/tasks` → task `assigned` → notif Telegram (+ email) ke pelaksana.
 3. **Kerjakan**: technician buka dashboard → lihat task → ubah status / submit completion report.
 4. **Approval**: `POST /api/tasks/{id}/reports/{reportId}/approve` → transaksi atomik (status → `approved` + insert `points_history`) → notif pelaksana.

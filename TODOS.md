@@ -36,7 +36,7 @@
 ## Sprint 2 — Registrasi & approval Telegram
 
 - [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
-- [x] Implementasi alur `/start` → nama/NIK/golongan → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai)
+- [x] Implementasi alur `/start` → nama/NPK/golongan → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai)
 - [ ] Uji end-to-end alur registrasi dengan bot Telegram asli (butuh akun Telegram + admin asli)
 
 ## Sprint 3 — Task assignment & notifikasi

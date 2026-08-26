@@ -3,18 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
+import { isAtasan, TITLE_OPTIONS } from '@/lib/constants';
 
 export default function Login() {
   const { session, profile, loading, signIn, signUp } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState('masuk');
-  const [form, setForm] = useState({ email: '', password: '', nama: '', nik: '', golongan: '3' });
+  const [form, setForm] = useState({ email: '', password: '', nama: '', npk: '', golongan: '3', title: 'Technician' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && session) {
-      router.replace(profile && profile.golongan >= 5 ? '/dashboard' : '/tech');
+      router.replace(isAtasan(profile) ? '/dashboard' : '/tech');
     }
   }, [loading, session, profile, router]);
 
@@ -32,8 +33,9 @@ export default function Login() {
         if (!form.nama.trim()) throw new Error('Nama wajib diisi.');
         const { error } = await signUp(form.email, form.password, {
           nama: form.nama.trim(),
-          nik: form.nik.trim(),
+          npk: form.npk.trim(),
           golongan: Number(form.golongan) || 1,
+          title: form.title,
         });
         if (error) throw new Error(error.message);
         setError('Berhasil mendaftar! Cek email kamu untuk konfirmasi (jika diaktifkan), lalu masuk.');
@@ -86,18 +88,21 @@ export default function Login() {
                 <label className="f-label" style={{ marginTop: 12 }}>Nama lengkap</label>
                 <input className="f-input" value={form.nama} onChange={set('nama')} placeholder="Budi Santoso" />
 
-                <label className="f-label" style={{ marginTop: 12 }}>NIK (opsional)</label>
-                <input className="f-input" value={form.nik} onChange={set('nik')} placeholder="00123456" />
+                <label className="f-label" style={{ marginTop: 12 }}>NPK (opsional)</label>
+                <input className="f-input" value={form.npk} onChange={set('npk')} placeholder="00123456" />
 
                 <label className="f-label" style={{ marginTop: 12 }}>Golongan</label>
                 <select className="f-input" value={form.golongan} onChange={set('golongan')}>
-                  <option value="1">1 — Operator</option>
-                  <option value="2">2 — Technician</option>
-                  <option value="3">3 — Technician</option>
-                  <option value="4">4 — Technician</option>
-                  <option value="5">5 — Supervisor</option>
-                  <option value="6">6 — Assistant Manager</option>
-                  <option value="7">7 — Section Manager</option>
+                  {[1, 2, 3, 4, 5, 6, 7].map((g) => (
+                    <option key={g} value={String(g)}>Golongan {g}</option>
+                  ))}
+                </select>
+
+                <label className="f-label" style={{ marginTop: 12 }}>Title / Jabatan</label>
+                <select className="f-input" value={form.title} onChange={set('title')}>
+                  {TITLE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
               </>
             )}

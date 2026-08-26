@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
+import { isAtasan } from '@/lib/constants';
 
 // Halaman awal — arahkan berdasarkan status login & golongan.
 export default function Home() {
@@ -15,7 +16,7 @@ export default function Home() {
       router.replace('/login');
       return;
     }
-    router.replace(profile && profile.golongan >= 5 ? '/dashboard' : '/tech');
+    router.replace(isAtasan(profile) ? '/dashboard' : '/tech');
   }, [loading, session, profile, router]);
 
   return (

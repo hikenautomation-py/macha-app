@@ -6,7 +6,7 @@ Semua endpoint di-host sebagai Vercel Serverless Functions (API routes). Autenti
 
 **Base URL**: `https://<NAMA-PROJECT>.vercel.app/api`
 
-**Autentikasi**: kirim header `Authorization: Bearer <supabase_jwt>` untuk semua endpoint dashboard. Vercel Function memvalidasi token menggunakan Supabase Auth (JWT verification), lalu mengambil data `golongan` user dari tabel `users` di PostgreSQL untuk otorisasi per endpoint.
+**Autentikasi**: kirim header `Authorization: Bearer <supabase_jwt>` untuk semua endpoint dashboard. Vercel Function memvalidasi token menggunakan Supabase Auth (JWT verification), lalu mengambil profil user (golongan + title) dari tabel `users` di PostgreSQL untuk otorisasi per endpoint (atasan = golongan ≥ 5 dengan title SPV ke atas).
 
 **Format response sukses**:
 ```json
@@ -23,7 +23,7 @@ Dipanggil dari sisi Telegram bot (internal, dipanggil dari handler webhook, buka
 
 Request:
 
-{ "chatId": "123456789", "nama": "Budi Santoso", "nik": "00123456", "golonganKlaim": 3 }
+{ "chatId": "123456789", "nama": "Budi Santoso", "npk": "00123456", "golonganKlaim": 3, "title": "Technician" }
 Response: { "success": true, "data": { "status": "pending" } }
 
 POST /registerApprove
@@ -39,7 +39,7 @@ Sama seperti di atas tapi menghapus entri pending dan mengirim pesan penolakan.
 
 2. Task
 POST /tasks
-Buat task baru. Hanya golongan ≥ 5 (SPV ke atas).
+Buat task baru. Hanya atasan (golongan ≥ 5 DAN title SPV ke atas).
 
 Request:
 
@@ -83,7 +83,7 @@ Response: { "success": true, "data": { "reportId": "r001", "statusTask": "report
 Validasi: catatan wajib diisi, lampiranUrl opsional.
 
 POST /tasks/{taskId}/reports/{reportId}/approve
-Hanya bisa dipanggil oleh atasan_id dari task terkait (golongan ≥ 5).
+Hanya bisa dipanggil oleh atasan_id dari task terkait (atasan = golongan ≥ 5 DAN title SPV ke atas).
 
 Efek samping (dalam satu transaksi database, menggunakan PostgreSQL transaction atau RPC function):
 
@@ -128,8 +128,8 @@ Response:
 {
   "success": true,
   "data": [
-    { "userId": "u1", "nama": "Budi Santoso", "golongan": "Technician", "poin": 85 },
-    { "userId": "u2", "nama": "Sari Dewi", "golongan": "Operator", "poin": 62 }
+    { "userId": "u1", "nama": "Budi Santoso", "golongan": 3, "title": "Technician", "poin": 85 },
+    { "userId": "u2", "nama": "Sari Dewi", "golongan": 1, "title": "Operator", "poin": 62 }
   ]
 }
 6. Webhook Telegram (internal, bukan API publik untuk dashboard)

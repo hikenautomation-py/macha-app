@@ -21,8 +21,9 @@ export async function POST(req) {
     .from('users')
     .insert({
       nama: pending.nama,
-      nik: pending.nik,
+      npk: pending.npk,
       golongan: golonganFinal != null ? Number(golonganFinal) : pending.golongan,
+      title: pending.title,
       atasan_id: atasanId || null,
       telegram_chat_id: String(chatId),
     })

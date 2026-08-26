@@ -8,8 +8,9 @@
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
   nama text not null,
-  nik text unique,
+  npk text unique,
   golongan integer not null default 1,
+  title text,
   atasan_id uuid references public.users(id),
   telegram_chat_id text unique,
   created_at timestamptz not null default now()
@@ -19,8 +20,9 @@ create table if not exists public.users (
 create table if not exists public.pending_registrations (
   chat_id text primary key,
   nama text not null,
-  nik text not null,
+  npk text not null,
   golongan integer not null,
+  title text,
   status text not null default 'pending',
   created_at timestamptz not null default now()
 );
@@ -97,12 +99,13 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.users (id, nama, nik, golongan)
+  insert into public.users (id, nama, npk, golongan, title)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'nama', split_part(coalesce(new.email, 'user'), '@', 1)),
-    nullif(new.raw_user_meta_data->>'nik', ''),
-    coalesce((new.raw_user_meta_data->>'golongan')::int, 1)
+    nullif(new.raw_user_meta_data->>'npk', ''),
+    coalesce((new.raw_user_meta_data->>'golongan')::int, 1),
+    nullif(new.raw_user_meta_data->>'title', '')
   )
   on conflict (id) do nothing;
   return new;

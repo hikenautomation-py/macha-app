@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import TicketCard from '@/components/TicketCard';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { isAtasan } from '@/lib/constants';
 
 const FILTERS = [
   { key: 'all', label: 'Semua' },
@@ -53,7 +54,7 @@ export default function Tech() {
       router.replace('/login');
       return;
     }
-    if (profile && profile.golongan >= 5) {
+    if (profile && isAtasan(profile)) {
       router.replace('/dashboard');
       return;
     }

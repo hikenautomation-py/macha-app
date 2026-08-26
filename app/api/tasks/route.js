@@ -1,4 +1,4 @@
-import { requireGolongan, requireAuth, jsonOk, jsonError } from '@/lib/auth';
+import { requireAtasan, requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { mapTask } from '@/lib/mappers';
 import { notifyTelegram } from '@/lib/telegram';
@@ -6,7 +6,7 @@ import { emailTaskAssigned } from '@/lib/email';
 
 // POST /api/tasks — buat task baru (golongan >= 5)
 export async function POST(req) {
-  const { profile, error } = await requireGolongan(req, 5);
+  const { profile, error } = await requireAtasan(req);
   if (error) return error;
 
   const body = await req.json().catch(() => null);

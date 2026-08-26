@@ -69,8 +69,9 @@ Buat tabel-tabel berikut di Supabase (bisa via dashboard SQL Editor atau migrati
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nama TEXT NOT NULL,
-  nik TEXT UNIQUE NOT NULL,
+  npk TEXT UNIQUE NOT NULL,
   golongan INTEGER NOT NULL,
+  title TEXT,
   atasan_id UUID REFERENCES users(id),
   telegram_chat_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -80,8 +81,9 @@ CREATE TABLE users (
 CREATE TABLE pending_registrations (
   chat_id TEXT PRIMARY KEY,
   nama TEXT NOT NULL,
-  nik TEXT NOT NULL,
+  npk TEXT NOT NULL,
   golongan INTEGER NOT NULL,
+  title TEXT,
   status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -243,7 +245,7 @@ Catatan: Route `/api/telegramWebhook` ada di `app/api/telegramWebhook/route.js` 
 
 2.4 Command dan interaksi yang perlu diimplementasi
 Command/aksi	Fungsi
-/start	Cek apakah chat_id sudah terdaftar di tabel users. Jika belum, mulai alur registrasi (tanya nama, NIK, golongan)
+/start	Cek apakah chat_id sudah terdaftar di tabel users. Jika belum, mulai alur registrasi (tanya nama, NPK, golongan)
 Inline button Setujui/Tolak (dikirim ke admin)	Callback query yang memindahkan data dari tabel pending_registrations ke users
 Notifikasi task baru	Pesan terkirim otomatis saat Vercel Function onTaskCreated dipanggil (atau trigger database)
 Balasan completion report	Bot terima teks/foto balasan, simpan ke tabel task_reports

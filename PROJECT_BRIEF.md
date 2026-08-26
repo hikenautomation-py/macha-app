@@ -59,7 +59,7 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 |---|---|---|
 | Display / heading | `Baloo 2` (500/600/700) | Judul halaman, judul task, greeting |
 | Body | `Plus Jakarta Sans` (400/500/600/700) | Paragraf, label, tombol |
-| Data / angka | `JetBrains Mono` (500/600) | Poin, NIK, angka statistik |
+| Data / angka | `JetBrains Mono` (500/600) | Poin, NPK, angka statistik |
 
 ### Layout & bentuk
 - Radius card: `20px` — radius kontrol/input: `12px` — badge/pill: `999px` (full round)
@@ -78,7 +78,7 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 ## 3. Deskripsi fitur per halaman
 
 ### Registrasi & approval Telegram
-User baru kirim `/start` ke bot → isi nama, NIK, golongan → status `pending` → admin telegram dapat notifikasi dengan tombol inline Setujui/Tolak → jika disetujui, `chat_id` terhubung ke akun user di database.
+User baru kirim `/start` ke bot → isi nama, NPK, golongan → status `pending` → admin telegram dapat notifikasi dengan tombol inline Setujui/Tolak → jika disetujui, `chat_id` terhubung ke akun user di database.
 
 ### Dashboard atasan
 Ringkasan metrik (task aktif, menunggu approval, problem report, total poin tim), daftar antrian approval, tabel statistik kinerja tim per individu. Tombol "Buat task baru" untuk assign task ke bawahan.
@@ -101,24 +101,24 @@ Aplikasi di-hosting sepenuhnya di layanan cloud (Firebase) untuk menghindari pro
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                Firebase project                  │
-│                                                    │
-│  Hosting (web dashboard)                          │
-│  Cloud Functions (API, business logic)            │
-│  Firestore (database)                              │
-│  Firebase Auth (login)                              │
-└───────────────┬─────────────────┬─────────────────┘
-                │                 │
-        ┌───────▼──────┐   ┌──────▼───────┐
+│                 Vercel project                  │
+│                                                 │
+│  Hosting (web dashboard)                        │
+│  Cloud Functions (API, business logic)          │
+│  Firestore (database)                           │
+│  Firebase Auth (login)                          │
+└───────────────┬──────────────────┬──────────────┘
+                │                  │
+        ┌───────▼───────┐   ┌──────▼────────┐
         │ Telegram Bot  │   │ Email service │
         │ API           │   │ (Resend/Gmail)│
-        └───────┬───────┘   └──────┬───────┘
+        └───────┬───────┘   └──────┬────-───┘
                 │                  │
-      ┌─────────▼─────────┐  ┌─────▼──────┐
-      │ HP pribadi         │  │ Email kantor│
-      │ (semua golongan,   │  │ (semua      │
-      │  data seluler)      │  │  golongan)  │
-      └────────────────────┘  └─────────────┘
+      ┌─────────▼─────────┐  ┌─────▼───────┐
+      │ HP pribadi        │  │ Email kantor│
+      │ (semua golongan,  │  │ (semua      │
+      │  data seluler)    │  │  golongan)  │
+      └───────────────────┘  └─────────────┘
 ```
 
 ### Komponen
@@ -140,7 +140,7 @@ Aplikasi di-hosting sepenuhnya di layanan cloud (Firebase) untuk menghindari pro
 - `pointsHistory/{entryId}` — log poin, collection root karena sering di-query lintas task
 
 **Autentikasi**
-- Firebase Auth untuk login web dashboard (email/password atau custom token yang dipetakan dari NIK)
+- Firebase Auth untuk login web dashboard (email/password atau custom token yang dipetakan dari NPK)
 - Telegram chat_id sebagai identitas alternatif untuk interaksi via bot, divalidasi lewat proses approval admin
 
 **Notifikasi**

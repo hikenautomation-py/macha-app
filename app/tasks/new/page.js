@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { isAtasan } from '@/lib/constants';
 
 export default function NewTask() {
   const { session, profile, loading } = useAuth();
@@ -21,7 +22,7 @@ export default function NewTask() {
       router.replace('/login');
       return;
     }
-    if (profile && profile.golongan < 5) {
+    if (profile && !isAtasan(profile)) {
       router.replace('/tech');
       return;
     }
@@ -81,7 +82,7 @@ export default function NewTask() {
           <option value="">— Pilih anggota tim —</option>
           {team.map((m) => (
             <option key={m.userId} value={m.userId}>
-              {m.nama} ({m.golongan})
+              {m.nama} ({m.title})
             </option>
           ))}
         </select>

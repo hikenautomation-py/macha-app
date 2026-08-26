@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram } from '@/lib/telegram';
-import { normalizeUrgency, URGENCY_LABEL, golonganLabel } from '@/lib/constants';
+import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS } from '@/lib/constants';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -60,7 +60,7 @@ export async function POST(req) {
     .eq('chat_id', String(chatId))
     .maybeSingle();
 
-  if (pending && ['step_nama', 'step_nik', 'step_golongan'].includes(pending.status)) {
+  if (pending && ['step_nama', 'step_npk', 'step_golongan', 'step_title'].includes(pending.status)) {
     await handleRegistrationStep(admin, pending, chatId, text);
     return jsonOk({ received: true });
   }
@@ -104,7 +104,7 @@ async function handleStart(admin, chatId) {
   if (user) {
     await sendTelegramMessage(
       chatId,
-      `Halo, <b>${user.nama}</b> 👋\nAkun kamu sudah aktif sebagai <b>${golonganLabel(user.golongan)}</b> (golongan ${user.golongan}).\n\nTask akan muncul otomatis di sini. Semangat!`
+      `Halo, <b>${user.nama}</b> 👋\nAkun kamu sudah aktif sebagai <b>${userTitle(user)}</b> (golongan ${user.golongan}).\n\nTask akan muncul otomatis di sini. Semangat!`
     );
     return;
   }
@@ -124,12 +124,23 @@ async function handleStart(admin, chatId) {
   await admin.from('pending_registrations').upsert({
     chat_id: String(chatId),
     nama: '',
-    nik: '',
+    npk: '',
     golongan: 0,
+    title: '',
     status: 'step_nama',
   });
 
   await sendTelegramMessage(chatId, 'Yuk mulai, kenalan dulu! 😊\n\nSiapa nama lengkap kamu?');
+}
+
+// Resolve input title dari angka (1-6) atau nama title (case-insensitive).
+function resolveTitle(text) {
+  const idx = parseInt(text, 10);
+  if (!Number.isNaN(idx) && idx >= 1 && idx <= TITLE_OPTIONS.length) {
+    return TITLE_OPTIONS[idx - 1];
+  }
+  const t = TITLE_OPTIONS.find((x) => x.toLowerCase() === String(text || '').trim().toLowerCase());
+  return t || null;
 }
 
 // ---------- Langkah registrasi ----------
@@ -140,14 +151,14 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
   }
 
   if (pending.status === 'step_nama') {
-    await admin.from('pending_registrations').update({ nama: text, status: 'step_nik' }).eq('chat_id', String(chatId));
-    await sendTelegramMessage(chatId, `Halo, ${text}! 👋\nBerapa NIK karyawan kamu?`);
+    await admin.from('pending_registrations').update({ nama: text, status: 'step_npk' }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(chatId, `Halo, ${text}! 👋\nBerapa NPK karyawan kamu?`);
     return;
   }
 
-  if (pending.status === 'step_nik') {
-    await admin.from('pending_registrations').update({ nik: text, status: 'step_golongan' }).eq('chat_id', String(chatId));
-    await sendTelegramMessage(chatId, 'Terakhir, golongan berapa kamu? (angka 1-7)\nContoh: <code>3</code> untuk technician.');
+  if (pending.status === 'step_npk') {
+    await admin.from('pending_registrations').update({ npk: text, status: 'step_golongan' }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(chatId, 'Golongan berapa kamu? (angka 1-7)\nContoh: <code>3</code> untuk technician.');
     return;
   }
 
@@ -157,13 +168,33 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
       await sendTelegramMessage(chatId, 'Masukkan golongan berupa angka 1-7 ya.');
       return;
     }
-    await admin.from('pending_registrations').update({ golongan: g, status: 'pending' }).eq('chat_id', String(chatId));
+    await admin.from('pending_registrations').update({ golongan: g, status: 'step_title' }).eq('chat_id', String(chatId));
+
+    await sendTelegramMessage(
+      chatId,
+      'Terakhir, apa title/jabatan kamu?\n' +
+        TITLE_OPTIONS.map((t, i) => `${i + 1}. ${t}`).join('\n') +
+        '\n\nKirim angkanya (contoh: <code>4</code> untuk SPV).'
+    );
+    return;
+  }
+
+  if (pending.status === 'step_title') {
+    const title = resolveTitle(text);
+    if (!title) {
+      await sendTelegramMessage(
+        chatId,
+        'Pilih title dengan angka ya:\n' + TITLE_OPTIONS.map((t, i) => `${i + 1}. ${t}`).join('\n')
+      );
+      return;
+    }
+    await admin.from('pending_registrations').update({ title, status: 'pending' }).eq('chat_id', String(chatId));
 
     await sendTelegramMessage(chatId, 'Mantap! 🎉 Data kamu sudah masuk, tinggal nunggu admin approve. Nanti aku kabari kalau sudah aktif.');
 
     // Notifikasi ke admin dengan tombol inline.
     if (ADMIN_CHAT_ID) {
-      await sendTelegramMessage(ADMIN_CHAT_ID, `📥 <b>Registrasi baru</b>\nNama: ${pending.nama}\nNIK: ${pending.nik}\nGolongan: ${g}`, {
+      await sendTelegramMessage(ADMIN_CHAT_ID, `📥 <b>Registrasi baru</b>\nNama: ${pending.nama}\nNPK: ${pending.npk}\nGolongan: ${pending.golongan}\nTitle: ${title}`, {
         reply_markup: {
           inline_keyboard: [[
             { text: '✅ Setujui', callback_data: `approve_${chatId}` },
@@ -192,8 +223,9 @@ async function approveRegistration(admin, chatId, cq, messageId) {
     .from('users')
     .insert({
       nama: pending.nama,
-      nik: pending.nik,
+      npk: pending.npk,
       golongan: pending.golongan,
+      title: pending.title,
       telegram_chat_id: String(chatId),
     })
     .select('id')
@@ -208,7 +240,7 @@ async function approveRegistration(admin, chatId, cq, messageId) {
   await sendTelegramMessage(chatId, `🎉 Selamat, ${pending.nama}! Akun kamu sudah aktif. Ketik /start untuk mulai.`);
 
   if (messageId) {
-    await editMessageText(cq.message?.chat?.id, messageId, `✅ <b>${pending.nama}</b> (NIK ${pending.nik}) sudah disetujui.`);
+    await editMessageText(cq.message?.chat?.id, messageId, `✅ <b>${pending.nama}</b> (NPK ${pending.npk}) sudah disetujui.`);
   }
 }
 
@@ -242,7 +274,7 @@ async function handleRegisterChannel(admin, msg, chatId) {
     .select('*')
     .eq('telegram_chat_id', senderId)
     .maybeSingle();
-  const isAdminUser = sender && Number(sender.golongan) >= 5;
+  const isAdminUser = sender && isAtasan(sender);
 
   if (!isAdminChat && !isAdminUser) {
     await sendTelegramMessage(chatId, 'Maaf, hanya admin yang bisa mendaftarkan group/channel.');
@@ -280,7 +312,7 @@ async function handleRemoveChannel(admin, msg, chatId) {
     .select('*')
     .eq('telegram_chat_id', senderId)
     .maybeSingle();
-  const isAdminUser = sender && Number(sender.golongan) >= 5;
+  const isAdminUser = sender && isAtasan(sender);
 
   if (!isAdminChat && !isAdminUser) {
     await sendTelegramMessage(chatId, 'Maaf, hanya admin yang bisa menghapus group/channel.');
