@@ -24,6 +24,7 @@ export async function POST(req) {
       npk: pending.npk,
       golongan: golonganFinal != null ? Number(golonganFinal) : pending.golongan,
       title: pending.title,
+      email: pending.email || null,
       atasan_id: atasanId || null,
       telegram_chat_id: String(chatId),
     })

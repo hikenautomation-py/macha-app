@@ -95,7 +95,7 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
 
 ## 6. Halaman & urutan (sesuai mockup)
 
-1. **Login / Registrasi** — form nama, NPK, golongan, title/jabatan + stamp note "menunggu approval".
+1. **Login / Registrasi** — form email/password (login) + nama, NPK, golongan, title/jabatan (daftar) + stamp note: "belum punya akun? daftar, atau ketik /start di bot Telegram dan masukkan NPK untuk menautkan akun".
 2. **Dashboard atasan** — greeting, tombol "Buat task baru", 4 metric card, antrian approval (ticket), problem report (ticket coral), tabel statistik tim.
 3. **Dashboard technician** — greeting blob, daftar "Task kamu hari ini" (ticket), 2 tombol aksi (Lapor selesai / Lapor masalah), kartu "Poin bulan ini".
 4. **Lapor selesai** — kartu konteks task (teal tint), textarea catatan (wajib), upload foto (opsional), tombol "Kirim untuk approval", stamp note poin.

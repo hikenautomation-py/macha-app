@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-25): `npm run build` ✅ dan `npm run lint` ✅. Deploy Vercel **live** di `macha-app-sigma.vercel.app` (build READY/PROMOTED). E2E API test **14/14 PASS** ke produksi. Broadcast group/channel Telegram + email Resend sudah terimplementasi. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-26): `npm run build` ✅ dan `npm run lint` ✅. Web app live di **`app.machapp.web.id`** (Vercel). E2E API test **14/14 PASS** ke produksi. Broadcast group/channel Telegram + email Resend (`Macha App <notif.machapp.web.id>`) sudah terimplementasi. Penautan **Web ↔ Telegram via NPK** selesai di kode — menunggu apply migrasi `0007` + deploy + E2E bot asli. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -36,8 +36,8 @@
 ## Sprint 2 — Registrasi & approval Telegram
 
 - [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
-- [x] Implementasi alur `/start` → nama/NPK/golongan → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai)
-- [ ] Uji end-to-end alur registrasi dengan bot Telegram asli (butuh akun Telegram + admin asli)
+- [x] Alur `/start` → **NPK dulu** → cocokkan ke `users`: sudah ada → penautan `telegram_chat_id` (akun web); belum ada → registrasi nama/golongan/title/email → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai, butuh migrasi `0007`)
+- [ ] Uji end-to-end alur registrasi + penautan dengan bot Telegram asli (butuh akun Telegram + admin asli + migrasi `0007` diterapkan)
 
 ## Sprint 3 — Task assignment & notifikasi
 
@@ -64,10 +64,11 @@
 
 ## Sprint 6 — Email & polish
 
-- [x] Integrasi email service + template notifikasi (Resend via `lib/email.js`, terpasang di 5 titik notifikasi)
+- [x] Integrasi email service + template notifikasi (Resend via `lib/email.js`, terpasang di 5 titik notifikasi + email "akun aktif" saat approval)
 - [x] Kirim email test Resend sandbox → `hikenautomation@gmail.com` (HTTP 200)
 - [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
-- [ ] Verifikasi domain pengirim Resend (user-dependent) + tes tidak masuk spam kantor
+- [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <notif.machapp.web.id>` (dikonfirmasi user)
+- [ ] Tes tidak masuk spam kantor (kirim ke email kantor asli)
 - [ ] Polish UI sesuai `DESIGN.md` di semua halaman
 - [ ] Tambah empty state & error state yang informatif
 
@@ -79,6 +80,17 @@
 - [x] Notifikasi completion/problem di semua route task memakai `notifyTelegram`
 - [x] `SETUP_TELEGRAM.md` diperbarui (alur bot lengkap: registrasi, group/channel, laporan, ringkasan notifikasi)
 - [ ] Validasi `/daftargrup` di group/channel asli (bot jadi admin + disable Group Privacy) — butuh aksi user
+
+## Fitur penautan Web ↔ Telegram via NPK (SELESAI — menunggu deploy & E2E)
+
+- [x] Migrasi `0007_add_email_and_telegram_link.sql` — kolom `email` di `users` & `pending_registrations` + backfill dari `auth.users` + trigger diperbarui (idempoten)
+- [x] Alur bot: `/start` → NPK → cocokkan ke `users`: sudah ada → link `telegram_chat_id` (penautan akun web); belum ada → lanjut registrasi nama/golongan/title/email
+- [x] Step `step_email` + peringatan "email dipakai untuk notifikasi, prioritaskan email kantor"
+- [x] Pesan akhir registrasi: menunggu approval + saran login web app `app.machapp.web.id`
+- [x] `registerApprove`/`registerRequest` menyimpan `email`; `getUserEmail` fallback ke `users.email` (notifikasi email untuk user Telegram)
+- [x] Email "akun aktif" (`emailRegistrationApproved`) terkirim saat approval
+- [ ] Apply migrasi `0007` ke Supabase produksi + deploy Vercel
+- [ ] Uji E2E penautan + alur registrasi baru dengan bot asli
 
 ---
 

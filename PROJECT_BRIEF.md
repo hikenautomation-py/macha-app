@@ -1,5 +1,7 @@
 # Task tracker — production engineering team
 
+> **STATUS UPDATE (2026-08-26)** — Implementasi aktual memakai **Supabase (Postgres + Auth + Storage) + Vercel (Next.js)** — lihat `ARCHITECTURE.md`. Web app live di **https://app.machapp.web.id**. Email notifikasi dikirim dari **Macha App \<notif.machapp.web.id\>** (Resend). Akun **web ↔ Telegram dihubungkan lewat NPK** sebagai kunci unik: cukup ketik NPK di bot Telegram saat `/start` untuk langsung menautkan notifikasi ke akun web yang sudah terdaftar. Rincian flow & endpoint ada di `API_SPEC.md` / `SETUP_TELEGRAM.md`.
+
 ## 1. Project brief
 
 ### Latar belakang
@@ -19,9 +21,10 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 - **Pelaksana** (Technician golongan 1-4, Operator golongan 1, Intern) — terima task, submit completion report, submit problem report. Akses via HP pribadi (data seluler), tidak selalu punya akses internet kantor.
 
 ### Kanal interaksi
-- **Web dashboard** (semua golongan, akses via browser di HP atau PC pribadi)
-- **Telegram bot** (notifikasi real-time + interaksi cepat, khususnya untuk golongan pelaksana)
-- **Email kantor** (notifikasi tambahan untuk atasan, satu arah — masuk ke inbox kantor, tidak butuh approval IT pusat karena bukan akses keluar domain)
+- **Web dashboard** (semua golongan, akses via browser di HP atau PC pribadi) — live di `https://app.machapp.web.id`
+- **Telegram bot** (notifikasi real-time + interaksi cepat, khususnya untuk golongan pelaksana) — `/start` + NPK untuk menautkan akun web, atau registrasi baru (nama → golongan → title → email)
+- **Email kantor** (notifikasi tambahan untuk atasan, satu arah — masuk ke inbox kantor, tidak butuh approval IT pusat karena bukan akses keluar domain) — dikirim dari `Macha App <notif.machapp.web.id>` via Resend
+- **Web ↔ Telegram** — NPK adalah kunci unik penghubung: akun yang sudah terdaftar di web bisa langsung menautkan chat Telegram tanpa registrasi ulang
 
 ### Batasan yang membentuk arsitektur
 - Internet kantor (jaringan kantor/PC) hanya untuk golongan 6 ke atas — tim engineering dibebaskan pakai HP pribadi dengan kuota sendiri, sehingga ini bukan blocker.

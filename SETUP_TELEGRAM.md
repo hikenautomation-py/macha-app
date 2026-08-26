@@ -93,31 +93,44 @@ Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook 
 
 | Perintah | Fungsi | Siapa |
 | --- | --- | --- |
-| `/start` | Mulai / daftarkan diri ke bot (chat pribadi) | Semua karyawan |
+| `/start` | Mulai / daftarkan diri ke bot — ketik NPK untuk menautkan akun web, atau lanjut registrasi (chat pribadi) | Semua karyawan |
 | `/daftargrup` | Daftarkan group/channel agar semua notif masuk ke sana | Admin (di dalam group/channel) |
 | `/hapusgrup` | Hapus group/channel dari daftar penerima notif | Admin (di dalam group/channel) |
 
 > Selain perintah di atas, user tidak perlu mengetik perintah lain — laporan
 > dikirim dengan cara **membalas (reply)** pesan notifikasi task dari bot (lihat bawah).
 
-### Alur 1 — Registrasi user ke bot
+### Alur 1 — Registrasi user ke bot (+ penautan akun web)
 
 1. Karyawan membuka bot di chat pribadi: `t.me/<username_bot>` → tekan **Start**
    (atau kirim `/start`).
-2. Bot bertanya **nama lengkap** → jawab dengan nama.
-3. Bot bertanya **NPK** → jawab dengan NPK karyawan.
-4. Bot bertanya **golongan** (angka 1–7) → jawab angka.
-5. Bot bertanya **title/jabatan** → jawab angka: 1. Intern, 2. Operator, 3. Technician, 4. SPV, 5. Assistant Manager, 6. Section Manager.
-6. Bot menyimpan data ke `pending_registrations` dan mengirim notifikasi ke
-   **admin approval** (chat `TELEGRAM_ADMIN_CHAT_ID`) dengan tombol inline:
-   - ✅ **Setujui** → user dipindah ke tabel `users`, `chat_id`-nya terhubung ke akun.
+2. Bot bertanya **NPK** terlebih dahulu → jawab dengan NPK karyawan.
+3. Bot mencocokkan NPK dengan akun web (tabel `users`):
+   - **NPK sudah terdaftar di web** → akun Telegram langsung **tertaut** ke akun
+     web tersebut (`telegram_chat_id` diisi). Notifikasi task akan masuk ke chat
+     ini. Selesai — tidak perlu isi data ulang.
+   - **NPK belum terdaftar** → lanjut registrasi lewat bot:
+     a. Bot bertanya **nama lengkap** → jawab dengan nama.
+     b. Bot bertanya **golongan** (angka 1–7) → jawab angka.
+     c. Bot bertanya **title/jabatan** → jawab angka: 1. Intern, 2. Operator, 3. Technician, 4. SPV, 5. Assistant Manager, 6. Section Manager.
+     d. Bot bertanya **email** → jawab email. ⚠️ Bot mengingatkan bahwa email ini
+        juga dipakai untuk **notifikasi** (task baru, hasil approval, dll) dan
+        **disarankan memakai email kantor**.
+4. Bot menyimpan data ke `pending_registrations` (status `pending`) dan mengirim
+   notifikasi ke **admin approval** (chat `TELEGRAM_ADMIN_CHAT_ID`) dengan tombol inline:
+   - ✅ **Setujui** → user dipindah ke tabel `users`, `chat_id`-nya terhubung ke akun
+     (+ email ikut tersimpan; email "akun aktif" dikirim ke alamat tsb).
    - ❌ **Tolak** → pendaftaran dihapus, user mendapat pesan penolakan.
-6. Setelah disetujui, user mendapat pesan "kamu sudah aktif sebagai <golongan>".
-   Jika user kirim `/start` lagi sebelum di-approve, bot membalas "masih menunggu approval".
+5. Setelah data lengkap, bot membalas **"registrasi menunggu approval admin"** dan
+   menyarankan untuk **login / pantau status di web app: https://app.machapp.web.id**.
+6. Setelah disetujui, user mendapat pesan "kamu sudah aktif". Jika user kirim
+   `/start` lagi sebelum di-approve, bot membalas "masih menunggu approval".
 
-> Catatan: user yang terdaftar lewat bot (Telegram) belum punya akun login web
-> (email/password). Akun web dibuat terpisah untuk login dashboard. Untuk tahap
-> UAT, akun dummy web sudah disediakan; akun Telegram adalah jalur laporan cepat.
+> Catatan: **NPK adalah kunci unik** yang menghubungkan akun web dan Telegram.
+> Kalau sudah punya akun web, cukup ketik NPK di bot — chat Telegram langsung
+> tertaut tanpa registrasi ulang. User yang terdaftar lewat bot dan belum punya
+> akun web tetap bisa membuka web app setelah di-approve (data login web dibuat
+> terpisah oleh admin bila diperlukan).
 
 ### Alur 2 — Mendaftarkan group/channel (notif broadcast)
 
@@ -189,7 +202,9 @@ Ada dua cara:
 | Problem report masuk | Atasan (prioritas tinggi) + group/channel terdaftar |
 | Task disetujui | Pelaksana + group/channel terdaftar |
 | Task perlu revisi | Pelaksana + group/channel terdaftar |
+| Akun di-approve | Email user (jika email diisi saat registrasi) |
 
 > Selain Telegram, notifikasi penting juga dikirim ke **email** penerima
-> (via Resend). Email aktif bila `EMAIL_API_KEY` + `EMAIL_FROM` terisi.
+> (via Resend). Email aktif bila `EMAIL_API_KEY` + `EMAIL_FROM` terisi
+> (contoh `EMAIL_FROM=Macha App <notif.machapp.web.id>`).
 

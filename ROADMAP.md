@@ -4,7 +4,9 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 
 > **STATUS UPDATE (2026-08-25)** — Dokumen ini adalah roadmap **asli** yang ditulis dengan asumsi stack **Firebase**. Implementasi aktual memakai **Supabase (Postgres + Auth + Storage) + Vercel (Next.js App Router) + Telegram Bot + Resend** — lihat `ARCHITECTURE.md`. Pemetaan: Firestore → Supabase Postgres, Firebase Auth → Supabase Auth, Cloud Functions → Next.js API routes di Vercel.
 >
-> **Progress per sprint:** Sprint 0–5 ✅ **SELESAI** · Sprint 6 🔄 **SEBAGIAN** (email selesai, verifikasi domain & polish UI berjalan) · Sprint 7–8 ⬜ **BELUM MULAI**.
+> **STATUS UPDATE (2026-08-26)** — Web app live di **https://app.machapp.web.id**. Email notifikasi dari **Macha App \<notif.machapp.web.id\>**. Fitur **penautan Web ↔ Telegram via NPK** selesai: `/start` → NPK → cocokkan ke akun web (tertaut) atau lanjut registrasi (nama/golongan/title/email). Menunggu apply migrasi `0007` + deploy + E2E bot asli.
+>
+> **Progress per sprint:** Sprint 0–5 ✅ **SELESAI** · Sprint 6 🔄 **SEBAGIAN** (email + domain pengirim + penautan selesai; polish UI & tes spam kantor berjalan) · Sprint 7–8 ⬜ **BELUM MULAI**.
 > Rincian per-item ada di `COMPLETED.md` (selesai) dan `TODOS.md` (sisa). Checkbox di bawah adalah roadmap historis dan tidak lagi mencerminkan stack/status aktual.
 
 ---

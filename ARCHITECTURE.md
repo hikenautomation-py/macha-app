@@ -12,6 +12,8 @@ Aplikasi task tracker untuk tim Production Engineering dengan hierarki golongan:
 
 Semua di-hosting di layanan cloud publik untuk menghindari birokrasi approval IT lokal. Pelaksana mengakses lewat HP pribadi (data seluler), atasan lewat internet kantor atau HP pribadi. Notifikasi lewat **Telegram bot** (channel utama, real-time, dua arah) dan **email kantor** (channel tambahan, satu arah).
 
+Web app live di **`https://app.machapp.web.id`** (Vercel). Akun web dan Telegram dihubungkan lewat **NPK** sebagai kunci unik: saat `/start` di bot, NPK dicocokkan ke tabel `users` → kalau sudah ada (akun web) `telegram_chat_id` langsung tertaut; kalau belum, registrasi dilanjutkan via bot (nama → golongan → title → email).
+
 ---
 
 ## 2. Stack teknologi
@@ -103,7 +105,7 @@ Status enum: `assigned` → `in_progress` → `report_submitted` → `approved` 
 
 ## 6. Alur utama
 
-1. **Registrasi Telegram**: user `/start` → isi nama/NPK/golongan → `pending_registrations` → admin tap inline button Setujui/Tolak → `registerApprove` memindahkan ke `users`.
+1. **Registrasi / penautan Telegram**: user `/start` → input **NPK** → dicocokkan ke tabel `users`: kalau sudah ada (akun web) `telegram_chat_id` langsung di-set (penautan, tanpa isi data ulang); kalau belum → isi nama/golongan/title/email → `pending_registrations` → admin tap tombol Setujui/Tolak → `registerApprove` memindahkan ke `users` (email ikut tersimpan + notifikasi email "akun aktif" dikirim).
 2. **Assign task**: atasan (golongan ≥ 5) `POST /api/tasks` → task `assigned` → notif Telegram (+ email) ke pelaksana.
 3. **Kerjakan**: technician buka dashboard → lihat task → ubah status / submit completion report.
 4. **Approval**: `POST /api/tasks/{id}/reports/{reportId}/approve` → transaksi atomik (status → `approved` + insert `points_history`) → notif pelaksana.
@@ -164,6 +166,6 @@ macha-app/
 | `TELEGRAM_ADMIN_CHAT_ID` | server | chat id admin approval |
 | `TELEGRAM_WEBHOOK_SECRET` | server | secret token validasi webhook Telegram |
 | `EMAIL_API_KEY` | server | API key Resend/SendGrid |
-| `EMAIL_FROM` | server | alamat pengirim notifikasi |
+| `EMAIL_FROM` | server | alamat pengirim notifikasi (produksi: `Macha App <notif.machapp.web.id>`) |
 
 Lihat `apicredential.md` untuk daftar lengkap + placeholder yang perlu diisi.

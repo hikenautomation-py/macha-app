@@ -4,7 +4,7 @@ Semua endpoint di-host sebagai Vercel Serverless Functions (API routes). Autenti
 
 ## Konvensi umum
 
-**Base URL**: `https://<NAMA-PROJECT>.vercel.app/api`
+**Base URL**: `https://<NAMA-PROJECT>.vercel.app/api` — produksi live: `https://app.machapp.web.id/api`
 
 **Autentikasi**: kirim header `Authorization: Bearer <supabase_jwt>` untuk semua endpoint dashboard. Vercel Function memvalidasi token menggunakan Supabase Auth (JWT verification), lalu mengambil profil user (golongan + title) dari tabel `users` di PostgreSQL untuk otorisasi per endpoint (atasan = golongan ≥ 5 dengan title SPV ke atas).
 
@@ -21,13 +21,18 @@ Kode error yang dipakai konsisten: UNAUTHENTICATED, PERMISSION_DENIED, NOT_FOUND
 POST /registerRequest
 Dipanggil dari sisi Telegram bot (internal, dipanggil dari handler webhook, bukan dari client). Membuat entri pending registration.
 
+> **Alur web ↔ Telegram:** saat registrasi di bot, user diminta **NPK** lebih dulu.
+> NPK dicocokkan dengan tabel `users` — kalau sudah ada (akun web), `telegram_chat_id`
+> langsung di-set ke akun tersebut (penautan, tanpa isi data ulang). Kalau belum ada,
+> registrasi dilanjutkan (nama → golongan → title → email) lalu baris `pending_registrations` dibuat.
+
 Request:
 
-{ "chatId": "123456789", "nama": "Budi Santoso", "npk": "00123456", "golonganKlaim": 3, "title": "Technician" }
+{ "chatId": "123456789", "nama": "Budi Santoso", "npk": "00123456", "golonganKlaim": 3, "title": "Technician", "email": "budi@perusahaan.com" }
 Response: { "success": true, "data": { "status": "pending" } }
 
 POST /registerApprove
-Dipanggil saat admin tap tombol inline Setujui di Telegram (internal, dari callback query handler). Memindahkan data dari tabel pending_registrations ke tabel users.
+Dipanggil saat admin tap tombol inline Setujui di Telegram (internal, dari callback query handler). Memindahkan data dari tabel pending_registrations ke tabel users. Kolom `email` (jika diisi) ikut disalin ke `users.email`, lalu notifikasi email "akun aktif" dikirim ke alamat tersebut.
 
 Request:
 
@@ -138,7 +143,7 @@ Endpoint tunggal yang menerima semua update dari Telegram (pesan, callback query
 
 Routing internal berdasarkan isi update:
 
-message.text = "/start" → alur registrasi
+message.text = "/start" → alur registrasi / penautan (NPK dulu → cocokkan ke `users`; kalau sudah ada langsung tertaut, kalau belum → nama → golongan → title → email)
 callback_query.data diawali approve_ / reject_ → alur approval admin
 message.reply_to_message merujuk ke task tertentu → completion/problem report tergantung konteks percakapan yang tersimpan sementara (state machine percakapan per chat_id)
 Ringkasan endpoint

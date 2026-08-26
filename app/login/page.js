@@ -116,7 +116,7 @@ export default function Login() {
 
           <div className="stamp-note">
             <span>💡</span>
-            <span>Belum punya akun? Pilih tab <b>Daftar</b>. Kamu juga bisa registrasi lewat bot Telegram.</span>
+            <span>Belum punya akun? Pilih tab <b>Daftar</b>. Sudah punya akun? Ketik <b>/start</b> di bot Telegram dan masukkan NPK untuk menautkan notifikasi ke Telegram.</span>
           </div>
         </div>
       </div>

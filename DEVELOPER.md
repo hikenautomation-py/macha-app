@@ -33,7 +33,7 @@ Di Supabase dan Vercel, aktifkan konfigurasi dasar:
 | Storage | Supabase → Storage | Buat bucket untuk lampiran foto, misal `task-attachments` |
 | Realtime | Supabase → Realtime | Aktif (default) untuk dashboard auto-update |
 | Serverless Functions | Vercel | Otomatis tersedia pada platform Vercel, tidak perlu setup khusus |
-| Hosting | Vercel | Otomatis via project import, domain default `*.vercel.app` |
+| Hosting | Vercel | Otomatis via project import; produksi live di `app.machapp.web.id` |
 
 > Catatan biaya:
 > - **Supabase Free** menyediakan 500 MB database, 50.000 monthly active users untuk Auth, 1 GB storage, dan 2 GB egress. Cukup untuk skala tim satu departemen.
@@ -70,6 +70,7 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nama TEXT NOT NULL,
   npk TEXT UNIQUE NOT NULL,
+  email TEXT,
   golongan INTEGER NOT NULL,
   title TEXT,
   atasan_id UUID REFERENCES users(id),
@@ -84,6 +85,7 @@ CREATE TABLE pending_registrations (
   npk TEXT NOT NULL,
   golongan INTEGER NOT NULL,
   title TEXT,
+  email TEXT,
   status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -235,9 +237,11 @@ Simpan chat_id admin ini sebagai environment variable TELEGRAM_ADMIN_CHAT_ID
 2.3 Set webhook
 Setelah Vercel Function untuk handle update Telegram sudah di-deploy, daftarkan webhook:
 
-curl -F "url=https://NAMA-PROJECT.vercel.app/api/telegramWebhook" \
+# Produksi live (domain app.machapp.web.id):
+curl -F "url=https://app.machapp.web.id/api/telegramWebhook" \
   -F "secret_token=ISI_TELEGRAM_WEBHOOK_SECRET" \
   https://api.telegram.org/botISI_TOKEN_BOT/setWebhook
+# Lokal/staging: ganti url=https://<NAMA-PROJECT>.vercel.app/api/telegramWebhook (atau URL ngrok)
 Verifikasi webhook aktif:
 
 curl https://api.telegram.org/botISI_TOKEN_BOT/getWebhookInfo
@@ -245,7 +249,7 @@ Catatan: Route `/api/telegramWebhook` ada di `app/api/telegramWebhook/route.js` 
 
 2.4 Command dan interaksi yang perlu diimplementasi
 Command/aksi	Fungsi
-/start	Cek apakah chat_id sudah terdaftar di tabel users. Jika belum, mulai alur registrasi (tanya nama, NPK, golongan)
+/start	Cek apakah chat_id sudah terdaftar di tabel users. Jika belum, minta NPK dulu → cocokkan ke users (penautan akun web) atau lanjut registrasi (nama, golongan, title, email)
 Inline button Setujui/Tolak (dikirim ke admin)	Callback query yang memindahkan data dari tabel pending_registrations ke users
 Notifikasi task baru	Pesan terkirim otomatis saat Vercel Function onTaskCreated dipanggil (atau trigger database)
 Balasan completion report	Bot terima teks/foto balasan, simpan ke tabel task_reports
@@ -268,9 +272,10 @@ Lalu set webhook sementara ke URL ngrok, misal https://random.ngrok.io/api/teleg
 Rekomendasi: Resend (gratis sampai 3000 email/bulan, setup sederhana) atau SendGrid. Hindari coba kirim langsung lewat SMTP Gmail pribadi karena rawan kena limit/spam flag.
 
 3.2 Setup
-Daftar akun di layanan pilihan, verifikasi domain pengirim (atau pakai domain default sandbox mereka untuk tahap awal)
-Dapatkan API key, simpan sebagai environment variable di Vercel (EMAIL_API_KEY)
-Buat template email sederhana: notifikasi task baru, notifikasi hasil approval
+Daftar akun di layanan pilihan, verifikasi domain pengirim (misal `notif.machapp.web.id`)
+Dapatkan API key, simpan sebagai environment variable di Vercel (`EMAIL_API_KEY`)
+Set `EMAIL_FROM`, contoh: `Macha App <notif.machapp.web.id>`
+Buat template email sederhana: notifikasi task baru, hasil approval, registrasi disetujui
 3.3 Yang perlu dikonfirmasi ke tim
 Daftar alamat email kantor untuk tiap SM/ASM/SPV yang akan menerima notifikasi
 Konfirmasi bahwa email dari domain layanan pihak ketiga (misal @resend.dev atau domain sendiri yang terverifikasi) tidak otomatis masuk folder spam di sistem email kantor — kalau perlu, minta IT lokal whitelist domain pengirim ini di filter spam (ini permintaan ringan, beda dengan permintaan akses IMAP/SMTP penuh)

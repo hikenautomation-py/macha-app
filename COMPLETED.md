@@ -74,9 +74,28 @@
 - [x] Deploy produksi READY/PROMOTED (alias `macha-app-sigma.vercel.app` ter-update)
 - [x] `.vercel/project.json` (project/org id) untuk `vercel link`
 
----
+## 2026-08-26 — Penautan Web ↔ Telegram via NPK, email registrasi & domain
 
-## Berikutnya (lihat TODOS.md)
+### Penautan akun (web ↔ Telegram)
+- [x] Alur bot baru: `/start` → input **NPK** → dicocokkan ke tabel `users`: sudah ada → `telegram_chat_id` langsung di-set (penautan akun web); belum ada → registrasi lanjut (nama → golongan → title → email)
+- [x] Migrasi `0007_add_email_and_telegram_link.sql` — kolom `email` di `users` + `pending_registrations`, backfill dari `auth.users`, trigger `handle_new_user` menyimpan email (idempoten)
+- [x] `0001_initial_schema.sql` disinkronkan (kolom `email` + trigger terbaru)
+- [x] `lib/constants.js`: konstanta `WEB_APP_URL=https://app.machapp.web.id`
+- [x] `lib/email.js`: `getUserEmail` fallback ke `users.email`; template baru `emailRegistrationApproved`
+- [x] `registerApprove` & `registerRequest` menyimpan `email`; approval mengirim email "akun aktif"
+- [x] Pesan akhir registrasi: menunggu approval + saran login di `app.machapp.web.id`
+
+### Email & domain
+- [x] `EMAIL_API_KEY` baru + `EMAIL_FROM=Macha App <notif.machapp.web.id>` (diisi user di `.env.local` / Vercel)
+- [x] Domain web app didaftarkan: **app.machapp.web.id**
+
+### Validasi
+- [x] `npm run lint` ✅ (No ESLint warnings or errors)
+- [x] `npm run build` ✅ (14/14 halaman, semua route API ter-compile)
+- [ ] Migrasi `0007` di-apply ke Supabase produksi (oleh user) + deploy Vercel
+- [ ] Uji E2E penautan + alur registrasi baru di bot asli (butuh migrasi + deploy)
+
+---
 - Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)
 - Verifikasi domain pengirim Resend (user-dependent)
 - Connect Git auto-deploy Vercel (opsional)

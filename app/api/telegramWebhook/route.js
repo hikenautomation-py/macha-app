@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram } from '@/lib/telegram';
-import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS } from '@/lib/constants';
+import { emailRegistrationApproved } from '@/lib/email';
+import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL } from '@/lib/constants';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -60,7 +61,7 @@ export async function POST(req) {
     .eq('chat_id', String(chatId))
     .maybeSingle();
 
-  if (pending && ['step_nama', 'step_npk', 'step_golongan', 'step_title'].includes(pending.status)) {
+  if (pending && ['step_npk', 'step_nama', 'step_golongan', 'step_title', 'step_email'].includes(pending.status)) {
     await handleRegistrationStep(admin, pending, chatId, text);
     return jsonOk({ received: true });
   }
@@ -120,17 +121,22 @@ async function handleStart(admin, chatId) {
     return;
   }
 
-  // Mulai alur registrasi.
+  // Mulai alur registrasi: NPK dulu untuk dicocokkan dengan akun web.
   await admin.from('pending_registrations').upsert({
     chat_id: String(chatId),
     nama: '',
     npk: '',
     golongan: 0,
     title: '',
-    status: 'step_nama',
+    email: '',
+    status: 'step_npk',
   });
 
-  await sendTelegramMessage(chatId, 'Yuk mulai, kenalan dulu! 😊\n\nSiapa nama lengkap kamu?');
+  await sendTelegramMessage(
+    chatId,
+    'Halo! Sebelum daftar, masukkan <b>NPK</b> karyawan kamu dulu ya. 😊\n\n' +
+      'NPK dipakai untuk mencocokkan akun web — kalau sudah terdaftar di app, akun Telegram kamu langsung tertaut.'
+  );
 }
 
 // Resolve input title dari angka (1-6) atau nama title (case-insensitive).
@@ -143,6 +149,36 @@ function resolveTitle(text) {
   return t || null;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Tautkan chat Telegram ke akun web yang sudah terdaftar (via NPK).
+async function linkUserByNpk(admin, chatId, npk) {
+  const { data: user } = await admin.from('users').select('*').eq('npk', npk).maybeSingle();
+  if (!user) return null;
+
+  if (user.telegram_chat_id === String(chatId)) {
+    await sendTelegramMessage(
+      chatId,
+      `✅ NPK <b>${npk}</b> sudah tertaut dengan chat Telegram ini (akun <b>${user.nama}</b>). Ketik /start untuk mulai.`
+    );
+    return user;
+  }
+
+  // Lepas tautan chat ini dari user lain dulu (kolom telegram_chat_id unique),
+  // lalu set ke akun yang cocok — link terbaru yang menang.
+  await admin.from('users').update({ telegram_chat_id: null }).eq('telegram_chat_id', String(chatId));
+  await admin.from('users').update({ telegram_chat_id: String(chatId) }).eq('id', user.id);
+  await admin.from('pending_registrations').delete().eq('chat_id', String(chatId));
+
+  await sendTelegramMessage(
+    chatId,
+    `🎉 NPK <b>${npk}</b> cocok dengan akun web <b>${user.nama}</b> (${userTitle(user)}, golongan ${user.golongan}).\n\n` +
+      'Akun Telegram kamu sekarang <b>tertaut</b> dengan akun web — notifikasi task akan masuk ke sini.\nKetik /start untuk mulai.'
+  );
+  return user;
+}
+
+
 // ---------- Langkah registrasi ----------
 async function handleRegistrationStep(admin, pending, chatId, text) {
   if (!text) {
@@ -150,15 +186,38 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
     return;
   }
 
-  if (pending.status === 'step_nama') {
-    await admin.from('pending_registrations').update({ nama: text, status: 'step_npk' }).eq('chat_id', String(chatId));
-    await sendTelegramMessage(chatId, `Halo, ${text}! 👋\nBerapa NPK karyawan kamu?`);
+  if (pending.status === 'step_npk') {
+    const npk = text.trim();
+    if (!npk) {
+      await sendTelegramMessage(chatId, 'NPK tidak boleh kosong. Masukkan NPK kamu ya.');
+      return;
+    }
+
+    // 1) Cocokkan NPK dengan akun web yang sudah terdaftar.
+    const linked = await linkUserByNpk(admin, chatId, npk);
+    if (linked) return;
+
+    // 2) Cek apakah NPK sedang menunggu approval dari chat lain.
+    const { data: other } = await admin
+      .from('pending_registrations')
+      .select('chat_id')
+      .eq('npk', npk)
+      .neq('chat_id', String(chatId))
+      .maybeSingle();
+    if (other) {
+      await sendTelegramMessage(chatId, 'NPK ini sedang dalam proses registrasi dari chat Telegram lain. Tunggu approval admin ya, atau hubungi admin kalau ada kendala.');
+      return;
+    }
+
+    // 3) Belum terdaftar → lanjut isi data pendaftaran.
+    await admin.from('pending_registrations').update({ npk, status: 'step_nama' }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(chatId, `NPK <b>${npk}</b> belum terdaftar di web. Lanjut registrasi lewat Telegram ya! 😊\n\nSiapa nama lengkap kamu?`);
     return;
   }
 
-  if (pending.status === 'step_npk') {
-    await admin.from('pending_registrations').update({ npk: text, status: 'step_golongan' }).eq('chat_id', String(chatId));
-    await sendTelegramMessage(chatId, 'Golongan berapa kamu? (angka 1-7)\nContoh: <code>3</code> untuk technician.');
+  if (pending.status === 'step_nama') {
+    await admin.from('pending_registrations').update({ nama: text, status: 'step_golongan' }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(chatId, `Halo, ${text}! 👋\nGolongan berapa kamu? (angka 1-7)\nContoh: <code>3</code> untuk technician.`);
     return;
   }
 
@@ -172,7 +231,7 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
 
     await sendTelegramMessage(
       chatId,
-      'Terakhir, apa title/jabatan kamu?\n' +
+      'Selanjutnya, apa title/jabatan kamu?\n' +
         TITLE_OPTIONS.map((t, i) => `${i + 1}. ${t}`).join('\n') +
         '\n\nKirim angkanya (contoh: <code>4</code> untuk SPV).'
     );
@@ -188,20 +247,46 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
       );
       return;
     }
-    await admin.from('pending_registrations').update({ title, status: 'pending' }).eq('chat_id', String(chatId));
+    await admin.from('pending_registrations').update({ title, status: 'step_email' }).eq('chat_id', String(chatId));
 
-    await sendTelegramMessage(chatId, 'Mantap! 🎉 Data kamu sudah masuk, tinggal nunggu admin approve. Nanti aku kabari kalau sudah aktif.');
+    await sendTelegramMessage(
+      chatId,
+      'Terakhir, masukkan <b>email</b> kamu. 📧\n\n' +
+        '⚠️ <b>Penting:</b> email ini juga dipakai untuk <b>notifikasi</b> (task baru, hasil approval, dll). ' +
+        'Prioritaskan pakai <b>email kantor</b> ya (contoh: nama@perusahaan.com).'
+    );
+    return;
+  }
+
+  if (pending.status === 'step_email') {
+    const email = text.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) {
+      await sendTelegramMessage(chatId, 'Format email belum benar. Contoh: <code>nama@perusahaan.com</code>');
+      return;
+    }
+    await admin.from('pending_registrations').update({ email, status: 'pending' }).eq('chat_id', String(chatId));
+
+    await sendTelegramMessage(
+      chatId,
+      `🎉 Registrasi kamu sudah lengkap dan menunggu <b>approval admin</b> — biasanya cuma beberapa menit.\n\n` +
+        `💻 Saran: kamu juga bisa login / pantau status di web app: <a href="${WEB_APP_URL}">app.machapp.web.id</a>\n` +
+        'Nanti aku kabari kalau akun sudah aktif.'
+    );
 
     // Notifikasi ke admin dengan tombol inline.
     if (ADMIN_CHAT_ID) {
-      await sendTelegramMessage(ADMIN_CHAT_ID, `📥 <b>Registrasi baru</b>\nNama: ${pending.nama}\nNPK: ${pending.npk}\nGolongan: ${pending.golongan}\nTitle: ${title}`, {
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '✅ Setujui', callback_data: `approve_${chatId}` },
-            { text: '❌ Tolak', callback_data: `reject_${chatId}` },
-          ]],
-        },
-      });
+      await sendTelegramMessage(
+        ADMIN_CHAT_ID,
+        `📥 <b>Registrasi baru</b>\nNama: ${pending.nama}\nNPK: ${pending.npk}\nGolongan: ${pending.golongan}\nTitle: ${pending.title}\nEmail: ${email}`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '✅ Setujui', callback_data: `approve_${chatId}` },
+              { text: '❌ Tolak', callback_data: `reject_${chatId}` },
+            ]],
+          },
+        }
+      );
     }
   }
 }
@@ -226,6 +311,7 @@ async function approveRegistration(admin, chatId, cq, messageId) {
       npk: pending.npk,
       golongan: pending.golongan,
       title: pending.title,
+      email: pending.email || null,
       telegram_chat_id: String(chatId),
     })
     .select('id')
@@ -237,6 +323,9 @@ async function approveRegistration(admin, chatId, cq, messageId) {
   }
 
   await admin.from('pending_registrations').delete().eq('chat_id', String(chatId));
+  if (pending.email) {
+    await emailRegistrationApproved(pending.email, { nama: pending.nama, npk: pending.npk });
+  }
   await sendTelegramMessage(chatId, `🎉 Selamat, ${pending.nama}! Akun kamu sudah aktif. Ketik /start untuk mulai.`);
 
   if (messageId) {
