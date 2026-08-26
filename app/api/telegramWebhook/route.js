@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
-import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram } from '@/lib/telegram';
+import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram, setBotCommands } from '@/lib/telegram';
 import { emailRegistrationApproved } from '@/lib/email';
 import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL } from '@/lib/constants';
 
@@ -38,9 +38,19 @@ export async function POST(req) {
   const chatId = msg.chat.id;
   const text = (msg.text || msg.caption || '').trim();
 
+  // Segarkan menu perintah bot (muncul saat user ketik "/") agar selalu sinkron
+  // setelah kode di-deploy. Persisten di sisi Telegram.
+  if (text.startsWith('/')) await setBotCommands();
+
   // 2) /start
   if (text === '/start') {
     await handleStart(admin, chatId);
+    return jsonOk({ received: true });
+  }
+
+  // 2a) /help — daftar perintah bot.
+  if (text === '/help') {
+    await handleHelp(chatId);
     return jsonOk({ received: true });
   }
 
@@ -72,7 +82,7 @@ export async function POST(req) {
     return jsonOk({ received: true });
   }
 
-  await sendTelegramMessage(chatId, 'Hmm, aku belum paham pesan itu. Ketik /start untuk mulai ya.');
+  await sendTelegramMessage(chatId, 'Hmm, aku belum paham pesan itu. Ketik /help untuk lihat perintah yang tersedia, atau /start untuk mulai.');
   return jsonOk({ received: true });
 }
 
@@ -136,6 +146,24 @@ async function handleStart(admin, chatId) {
     chatId,
     'Halo! Sebelum daftar, masukkan <b>NPK</b> karyawan kamu dulu ya. 😊\n\n' +
       'NPK dipakai untuk mencocokkan akun web — kalau sudah terdaftar di app, akun Telegram kamu langsung tertaut.'
+  );
+}
+
+// ---------- /help ----------
+async function handleHelp(chatId) {
+  await sendTelegramMessage(
+    chatId,
+    'Berikut perintah bot ini 🤖\n\n' +
+      '<b>Perintah</b>\n' +
+      '/start — Mulai atau daftarkan diri.\n' +
+      '/help — Tampilkan bantuan (ini).\n\n' +
+      '<b>Lapor task</b> (balas notifikasi task yang ada tag #task_...)\n' +
+      '• Lampirkan <b>foto</b> saat membalas → lapor selesai.\n' +
+      '• Balas dengan <b>teks</b> → lapor masalah. Awali dengan "mendesak", "perlu hari ini", atau "bisa nunggu".\n\n' +
+      '<b>Admin group/channel</b>\n' +
+      '/daftargrup — daftarkan group/channel penerima notifikasi (jalankan di dalam group/channel).\n' +
+      '/hapusgrup — hapus group/channel dari daftar notifikasi.\n\n' +
+      `Belum punya akun? Ketik /start dan masukkan NPK untuk menautkan akun web. 💻 Web app: <a href="${WEB_APP_URL}">app.machapp.web.id</a>`
   );
 }
 

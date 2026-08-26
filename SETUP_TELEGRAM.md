@@ -94,8 +94,12 @@ Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook 
 | Perintah | Fungsi | Siapa |
 | --- | --- | --- |
 | `/start` | Mulai / daftarkan diri ke bot — ketik NPK untuk menautkan akun web, atau lanjut registrasi (chat pribadi) | Semua karyawan |
+| `/help` | Tampilkan daftar perintah & cara lapor task | Semua karyawan |
 | `/daftargrup` | Daftarkan group/channel agar semua notif masuk ke sana | Admin (di dalam group/channel) |
 | `/hapusgrup` | Hapus group/channel dari daftar penerima notif | Admin (di dalam group/channel) |
+
+> Saat user mengetik `/` di chat, menu perintah bot otomatis muncul (`/start` dan `/help`)
+> berkat `setMyCommands`. Menu disegarkan otomatis setiap ada perintah setelah deploy.
 
 > Selain perintah di atas, user tidak perlu mengetik perintah lain — laporan
 > dikirim dengan cara **membalas (reply)** pesan notifikasi task dari bot (lihat bawah).
