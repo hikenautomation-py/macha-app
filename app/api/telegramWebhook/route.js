@@ -1,8 +1,9 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram, setBotCommands } from '@/lib/telegram';
-import { emailRegistrationApproved, emailExternalReport } from '@/lib/email';
+import { emailRegistrationApproved, emailExternalReport, emailTaskAssigned } from '@/lib/email';
 import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL } from '@/lib/constants';
+import { externalRequestText, broadcastExternalRequest } from '@/lib/external';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -119,6 +120,10 @@ async function handleCallback(admin, cq) {
     await startTaskAction(admin, cq, data.slice('update_'.length), 'update');
   } else if (data.startsWith('complete_')) {
     await startTaskAction(admin, cq, data.slice('complete_'.length), 'selesai');
+  } else if (data.startsWith('pickup_')) {
+    await handleExternalPickup(admin, cq, data.slice('pickup_'.length), messageId);
+  } else if (data.startsWith('xreject_')) {
+    await handleExternalReject(admin, cq, data.slice('xreject_'.length), messageId);
   } else {
     await answerCallback(cq.id, '');
   }
@@ -250,8 +255,7 @@ async function handleTaskContextInput(admin, msg, chatId, text) {
 
 // ---------- Alur /laporan & /request ----------
 // Tidak wajib terdaftar; pelapor diminta nama → NPK → deskripsi. Data masuk ke
-// tabel `external_requests` dan notif ke admin/channel.
-const EXTERNAL_TYPE_LABEL = { problem: '🚨 LAPORAN MASALAH', improvement: '💡 PERMINTAAN IMPROVEMENT' };
+// tabel `external_requests` dan notif ke admin/channel dengan tombol aksi.
 
 async function handleStartExternalReport(admin, msg, chatId, type) {
   await admin.from('telegram_external_convos').upsert({
@@ -324,10 +328,7 @@ async function handleExternalReportInput(admin, msg, chatId, text) {
       return true;
     }
 
-    const label = EXTERNAL_TYPE_LABEL[ctx.type];
-    const notif = `${label}\nDari: ${row.nama}${row.npk ? ` (NPK ${row.npk})` : ''}\n\n${row.description}`;
-    if (ADMIN_CHAT_ID) await sendTelegramMessage(ADMIN_CHAT_ID, notif);
-    await notifyTelegram(admin, null, notif);
+    await broadcastExternalRequest(admin, row);
     await emailExternalReport(admin, { type: ctx.type, nama: row.nama, npk: row.npk, deskripsi: row.description });
 
     await sendTelegramMessage(
@@ -340,6 +341,136 @@ async function handleExternalReportInput(admin, msg, chatId, text) {
   }
 
   return false;
+}
+
+// ---------- Pick up / Reject laporan umum & request ----------
+// Siapa pun yang chat_id-nya sudah tertaut ke akun boleh pick up; reject hanya
+// SPV ke atas. First-come-first-served lewat cek status = 'open'.
+
+// Ambil user dari chat_id sender; return null bila belum tertaut.
+async function findUserByChatId(admin, chatId) {
+  const { data } = await admin
+    .from('users')
+    .select('*')
+    .eq('telegram_chat_id', String(chatId))
+    .maybeSingle();
+  return data || null;
+}
+
+async function handleExternalPickup(admin, cq, requestId, messageId) {
+  const chatId = cq.message?.chat?.id;
+  const senderId = String(cq.from?.id || '');
+
+  const user = await findUserByChatId(admin, senderId);
+  if (!user) {
+    await answerCallback(cq.id, 'Kamu belum terdaftar. Ketik /start untuk menautkan akun.');
+    return;
+  }
+
+  // Ambil row + lock dengan cek status; hanya boleh pickup saat masih open.
+  const { data: row } = await admin
+    .from('external_requests')
+    .select('*')
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (!row) {
+    await answerCallback(cq.id, 'Laporan tidak ditemukan.');
+    return;
+  }
+  if (row.status !== 'open') {
+    await answerCallback(cq.id, 'Laporan ini sudah diambil/ditutup.');
+    await editMessageText(chatId, messageId, `✅ <b>Sudah ditangani</b>\n${externalRequestText(row)}`);
+    return;
+  }
+
+  const atasanId = user.atasan_id;
+
+  // Buat task dari laporan/request.
+  const { data: task, error: taskErr } = await admin
+    .from('tasks')
+    .insert({
+      assigned_by: atasanId,
+      assigned_to: user.id,
+      title: `[${row.type === 'problem' ? 'Laporan' : 'Request'}] ${row.description.slice(0, 80)}`,
+      description: `Laporan dari ${row.nama}${row.npk ? ` (NPK ${row.npk})` : ''}.\n\n${row.description}`,
+      points: 0,
+      deadline: null,
+      status: 'assigned',
+    })
+    .select('*')
+    .single();
+
+  if (taskErr) {
+    await answerCallback(cq.id, `Gagal membuat task: ${taskErr.message}`);
+    return;
+  }
+
+  const { error: updErr } = await admin
+    .from('external_requests')
+    .update({ status: 'picked', picked_by: user.id, task_id: task.id })
+    .eq('id', requestId)
+    .eq('status', 'open');
+
+  if (updErr) {
+    await answerCallback(cq.id, 'Laporan sudah diambil orang lain.');
+    await editMessageText(chatId, messageId, `✅ <b>Sudah ditangani</b>\n${externalRequestText(row)}`);
+    return;
+  }
+
+  await answerCallback(cq.id, 'Task dibuat untuk kamu ✅');
+  await editMessageText(
+    chatId,
+    messageId,
+    `🙋 <b>Pick up oleh ${user.nama}</b>\n${externalRequestText(row)}`
+  );
+
+  await sendTelegramMessage(
+    senderId,
+    `📋 <b>Task baru dari pick up</b>\n${task.title}\n\nKamu yang menangani laporan/request ini. Selesaikan dan lapor seperti task biasa.\n\n🔖 #task_${task.id}`
+  );
+
+  // Notif task baru ke atasan via email (jika ada email atasan).
+  await emailTaskAssigned(admin, user.id, task);
+}
+
+async function handleExternalReject(admin, cq, requestId, messageId) {
+  const chatId = cq.message?.chat?.id;
+  const senderId = String(cq.from?.id || '');
+
+  const user = await findUserByChatId(admin, senderId);
+  if (!user || !isAtasan(user)) {
+    await answerCallback(cq.id, 'Hanya SPV ke atas yang boleh reject.');
+    return;
+  }
+
+  const { data: row } = await admin
+    .from('external_requests')
+    .select('*')
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (!row) {
+    await answerCallback(cq.id, 'Laporan tidak ditemukan.');
+    return;
+  }
+  if (row.status !== 'open') {
+    await answerCallback(cq.id, 'Laporan ini sudah ditangani.');
+    return;
+  }
+
+  await admin
+    .from('external_requests')
+    .update({ status: 'rejected', rejected_by: user.id })
+    .eq('id', requestId)
+    .eq('status', 'open');
+
+  await answerCallback(cq.id, 'Laporan ditutup ❌');
+  await editMessageText(
+    chatId,
+    messageId,
+    `❌ <b>Ditolak oleh ${user.nama}</b>\n${externalRequestText(row)}`
+  );
 }
 
 // ---------- Alur /start ----------
@@ -400,6 +531,8 @@ async function handleHelp(chatId) {
       '<b>Lapor task</b> (balas notifikasi task yang ada tag #task_...)\n' +
       '• Lampirkan <b>foto</b> saat membalas → lapor selesai.\n' +
       '• Balas dengan <b>teks</b> → lapor masalah. Awali dengan "mendesak", "perlu hari ini", atau "bisa nunggu".\n\n' +
+      '<b>Laporan/request umum</b>\n' +
+      '• Notifikasi laporan memuat tombol <b>Pick up</b> (ambil & jadi task kamu) dan <b>Reject</b> (hanya SPV ke atas).\n\n' +
       '<b>Admin group/channel</b>\n' +
       '/daftargrup — daftarkan group/channel penerima notifikasi (jalankan di dalam group/channel).\n' +
       '/hapusgrup — hapus group/channel dari daftar notifikasi.\n\n' +

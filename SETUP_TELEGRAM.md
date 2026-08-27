@@ -216,11 +216,16 @@ Untuk seksi lain (mis. produksi) yang tidak punya akun web, tersedia dua perinta
 2. Bot bertanya **nama lengkap** → jawab nama.
 3. Bot bertanya **NPK** → jawab NPK (ketik `-` kalau tidak ada).
 4. Bot bertanya **deskripsi** → jawab masalah/usulan.
-5. Laporan masuk ke `external_requests`, notif diteruskan ke admin/channel, dan
-   email dikirim ke atasan. Atasan menyelesaikan lewat dashboard web.
+5. Laporan masuk ke `external_requests` dengan notif ke admin/channel berisi
+   tombol inline:
+   - `🙋 Pick up` → siapa pun yang chat_id-nya sudah tertaut ke akun bisa ambil.
+     Bot membuat task baru untuk si picker (assigned_by = atasan si picker).
+   - `❌ Reject` → hanya SPV ke atas; menutup laporan/request.
+6. Email juga dikirim ke atasan.
 
 Alternatif: buka form web publik di `app.machapp.web.id/laporan` dan
-`app.machapp.web.id/request`.
+`app.machapp.web.id/request`. Siapa pun yang login web bisa melihat daftar
+laporan/request tanpa menunggu delegasi atasan.
 
 ### Rangkuman notifikasi
 
@@ -231,6 +236,8 @@ Alternatif: buka form web publik di `app.machapp.web.id/laporan` dan
 | Problem report masuk | Atasan (prioritas tinggi) + group/channel terdaftar |
 | Task disetujui | Pelaksana + group/channel terdaftar |
 | Task perlu revisi | Pelaksana + group/channel terdaftar |
+| Laporan/request masuk | Admin + group/channel terdaftar (tombol Pick up / Reject) |
+| Laporan/request di-pick up | Task baru ke si picker |
 | Akun di-approve | Email user (jika email diisi saat registrasi) |
 
 > Selain Telegram, notifikasi penting juga dikirim ke **email** penerima

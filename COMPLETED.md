@@ -109,13 +109,19 @@
 
 ### Laporan umum & request (Sprint 5)
 - [x] Migrasi `0010_external_requests.sql` — tabel `external_requests` + `telegram_external_convos`
-- [x] `app/api/external/route.js` — POST publik + GET atasan
+- [x] `app/api/external/route.js` — POST publik + GET (semua user login)
 - [x] `app/api/external/[id]/resolve/route.js` — resolve laporan umum/request
 - [x] `app/api/problems/route.js` — list problem report task (atasan)
 - [x] `app/api/dashboard/summary/route.js` — payload metric card
 - [x] `lib/email.js` — `emailExternalReport` (kirim ke semua atasan)
 - [x] Telegram `/laporan` & `/request` + alur multi-step nama → NPK → deskripsi
 - [x] Form web publik `/laporan` & `/request`
+
+### Pick up / reject laporan umum (lanjutan Sprint 5)
+- [x] Migrasi `0011_external_pickup.sql` — kolom `picked_by`, `task_id`, `rejected_by` + status enum `open`/`picked`/`rejected`/`resolved`
+- [x] `lib/external.js` — helper teks + keyboard inline + broadcast notifikasi
+- [x] Webhook Telegram: callback `pickup_` (siapa pun tertaut, buat task assigned_by = atasan picker) & `xreject_` (hanya SPV ke atas)
+- [x] `GET /api/external` jadi semua user login (tidak terbatas atasan)
 
 ### Polish dashboard (Sprint 5)
 - [x] Dashboard atasan: 4 metric card + section problem report + laporan umum/request + statistik tim

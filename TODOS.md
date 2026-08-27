@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**. Notif Telegram laporan sudah terkirim ke group (dikonfirmasi user). Email laporan ke atasan sempat gagal 422 karena `EMAIL_FROM` produksi lama; sudah di-update ke `info@notif.machapp.web.id` + redeploy, menunggu verifikasi. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), polish dashboard 4 metric card, serta **pick up/reject laporan via inline button Telegram** sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**; migrasi `0011` (pick up) **belum di-apply** — butuh aksi user. Email laporan ke atasan masih diblokir menunggu setup/verifikasi domain Resend (SPF/DKIM). E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -66,6 +66,8 @@
 - [ ] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli) — **butuh aksi user**
 - [x] Problem report bisa dilakukan siapapun: perintah Telegram `/laporan` (laporan masalah umum) + `/request` (permintaan improvement), plus form web publik `/laporan` & `/request`. Data masuk tabel `external_requests`, pelapor wajib isi nama + NPK (tidak wajib terdaftar).
 - [x] Metric card dashboard atasan jadi 4 kartu (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini) + section problem report & laporan umum/request (migrasi `0010`, route `/api/dashboard/summary`)
+- [x] Siapapun bisa Pick up laporan/request: notif Telegram memuat tombol inline `Pick up` + `Reject`. Pick up membuat task untuk si picker (assigned_by = atasan picker); reject hanya SPV ke atas. Migrasi `0011`, helper `lib/external.js`, callback `pickup_`/`xreject_` di webhook.
+- [x] Endpoint `GET /api/external` diubah dari atasan-only menjadi semua user login (agar laporan/request terlihat lintas golongan tanpa delegasi).
 
 ## Sprint 6 — Email & polish
 

@@ -152,7 +152,7 @@ POST /external
 Publik (tanpa login). Body: { "type": "problem"|"improvement", "nama": "...", "npk": "...", "deskripsi": "..." }. Simpan ke external_requests, notif Telegram + email atasan.
 
 GET /external?type=&status=
-Atasan. Daftar laporan umum / request.
+Semua user login. Daftar laporan umum / request (tidak terbatas atasan).
 
 POST /external/{id}/resolve
 Atasan. Body: { "keputusan": "..." } → status resolved.
@@ -189,7 +189,7 @@ Endpoint	Method	Golongan minimum
 /teams	GET/POST	5
 /teams/{id}/members	POST	5 (lead/creator team)
 /teams/{id}/stats	GET	5 (hanya id == diri sendiri)
-/external	POST	- (publik); GET 5
+/external	POST	- (publik); GET semua user login
 /external/{id}/resolve	POST	5
 /dashboard/summary	GET	5
 /users/{id}/points	GET	semua (hanya data sendiri, kecuali atasan)

@@ -1,10 +1,9 @@
-import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
+import { requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { notifyTelegram, sendTelegramMessage } from '@/lib/telegram';
 import { emailExternalReport } from '@/lib/email';
+import { broadcastExternalRequest } from '@/lib/external';
 
 const TYPES = ['problem', 'improvement'];
-const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 
 // POST /api/external — publik (service role). Dipakai form web & bot Telegram.
 // Tidak wajib login; targetnya seksi lain (mis. produksi) yang tidak punya akun.
@@ -41,19 +40,15 @@ export async function POST(req) {
 
   if (error) return jsonError(500, 'INTERNAL', error.message);
 
-  const label = type === 'problem' ? '🚨 LAPORAN MASALAH' : '💡 PERMINTAAN IMPROVEMENT';
-  const text = `${label}\nDari: ${row.nama}${row.npk ? ` (NPK ${row.npk})` : ''}\n\n${row.description}`;
-
-  if (ADMIN_CHAT_ID) await sendTelegramMessage(ADMIN_CHAT_ID, text);
-  await notifyTelegram(admin, null, text);
-  await emailExternalReport(admin, { type, nama: row.nama, npk: row.npk, deskripsi: row.description });
+  await broadcastExternalRequest(admin, row);
+  await emailExternalReport(admin, { type: row.type, nama: row.nama, npk: row.npk, deskripsi: row.description });
 
   return jsonOk({ requestId: row.id });
 }
 
-// GET /api/external?type=&status= — daftar laporan umum / request (atasan).
+// GET /api/external?type=&status= — daftar laporan umum / request (semua user login).
 export async function GET(req) {
-  const { error } = await requireAtasan(req);
+  const { error } = await requireAuth(req);
   if (error) return error;
 
   const url = new URL(req.url);
