@@ -48,7 +48,7 @@
 - [x] Uji `POST /api/tasks` dari dashboard atasan (E2E ✅)
 - [x] Uji `GET /api/tasks?userId=` di dashboard technician (E2E ✅)
 - [x] Wiring notif Telegram otomatis saat task dibuat (via `notifyTelegram`, route `tasks`)
-- [ ] Validasi notif Telegram benar-benar terkirim ke chat/group asli (butuh bot asli + `notification_channels` terisi)
+- [ ] Validasi notif Telegram benar-benar terkirim ke chat/group asli (butuh bot asli + `notification_channels` terisi) — **butuh aksi user**
 
 ## Sprint 4 — Completion report & approval poin
 
@@ -56,7 +56,7 @@
 - [x] Uji antrian approval di dashboard atasan (`/tasks/pendingApproval`) (E2E ✅, fix import `mapReport`)
 - [x] Uji transaksi approve/reject (status + poin atomik via RPC `approve_report`) (E2E ✅)
 - [x] Uji skenario reject → revisi → submit ulang (E2E ✅)
-- [ ] Uji upload foto ke Supabase Storage (belum tercakup di E2E)
+- [ ] Uji upload foto ke Supabase Storage (belum tercakup di E2E) — **butuh aksi user**
 
 ## Sprint 5 — Problem report & statistik
 
@@ -86,7 +86,7 @@
 - [x] `SETUP_TELEGRAM.md` diperbarui (alur bot lengkap: registrasi, group/channel, laporan, ringkasan notifikasi)
 - [x] Validasi `/daftargrup` di group/channel asli (bot jadi admin + disable Group Privacy) — butuh aksi user
 
-## Fitur penautan Web ↔ Telegram via NPK (SELESAI — menunggu deploy & E2E)
+## Fitur penautan Web ↔ Telegram via NPK (SELESAI — E2E bot asli masih butuh aksi user)
 
 - [x] Migrasi `0007_add_email_and_telegram_link.sql` — kolom `email` di `users` & `pending_registrations` + backfill dari `auth.users` + trigger diperbarui (idempoten)
 - [x] Alur bot: `/start` → NPK → cocokkan ke `users`: sudah ada → link `telegram_chat_id` (penautan akun web); belum ada → lanjut registrasi nama/golongan/title/email
@@ -95,7 +95,7 @@
 - [x] `registerApprove`/`registerRequest` menyimpan `email`; `getUserEmail` fallback ke `users.email` (notifikasi email untuk user Telegram)
 - [x] Email "akun aktif" (`emailRegistrationApproved`) terkirim saat approval
 - [x] Apply migrasi `0007` ke Supabase produksi + deploy Vercel
-- [ ] Uji E2E penautan + alur registrasi baru dengan bot asli
+- [ ] Uji E2E penautan + alur registrasi baru dengan bot asli — **butuh aksi user**
 
 ---
 
