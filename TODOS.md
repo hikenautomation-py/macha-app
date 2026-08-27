@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **belum di-apply ke Supabase produksi** — butuh aksi user. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -72,10 +72,10 @@
 - [x] Integrasi email service + template notifikasi (Resend via `lib/email.js`, terpasang di 5 titik notifikasi + email "akun aktif" saat approval)
 - [x] Kirim email test Resend sandbox → `hikenautomation@gmail.com` (HTTP 200)
 - [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
-- [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <notif.machapp.web.id>` (dikonfirmasi user)
-- [ ] Tes tidak masuk spam kantor (kirim ke email kantor asli)
-- [ ] Polish UI sesuai `DESIGN.md` di semua halaman
-- [ ] Tambah empty state & error state yang informatif
+- [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <info@notif.machapp.web.id>` (dikonfirmasi user; reply-to ditambahkan ke notifikasi task/report/approval)
+- [x] Tes spam kantor: kirim email test ke `dedy_supriyanto@taci.toyota-industries.com` (Resend HTTP 200) — menunggu konfirmasi user apakah masuk inbox atau spam
+- [x] Polish UI sesuai `DESIGN.md` di halaman dashboard atasan (4 metric card + section problem/laporan) & halaman baru teams/laporan/request
+- [ ] Tambah empty state & error state yang informatif (sudah ada `EmptyState`/`Loading`/`err`; audit ulang per halaman tersisa)
 
 ## Fitur broadcast group/channel Telegram (SELESAI)
 
