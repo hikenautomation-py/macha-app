@@ -137,6 +137,32 @@ Response:
     { "userId": "u2", "nama": "Sari Dewi", "golongan": 1, "title": "Operator", "poin": 62 }
   ]
 }
+5a. Teams & organisasi
+GET /teams
+Daftar team yang dikelola (lead_id / created_by = diri sendiri), disertai member.
+
+POST /teams
+Buat team. Body: { "nama": "Line 1", "leadId": "user_id" } — leadId opsional, default diri sendiri, dan harus diri sendiri atau bawahan.
+
+POST /teams/{id}/members
+Tambah/hapus anggota. Body: { "userId": "...", "action": "add" | "remove" }. Hanya lead/creator team; target harus subtree bawahan manager. Add akan menyinkronkan users.atasan_id = lead team.
+
+5b. Laporan umum & problem list
+POST /external
+Publik (tanpa login). Body: { "type": "problem"|"improvement", "nama": "...", "npk": "...", "deskripsi": "..." }. Simpan ke external_requests, notif Telegram + email atasan.
+
+GET /external?type=&status=
+Atasan. Daftar laporan umum / request.
+
+POST /external/{id}/resolve
+Atasan. Body: { "keputusan": "..." } → status resolved.
+
+GET /problems?status=open
+Atasan. Problem report pada task yang assigned_by = dirinya, disertai judul task + nama pelapor.
+
+GET /dashboard/summary
+Atasan. Payload metric: { taskAktif, menungguApproval, problemOpen, anggotaTim, totalPoinTim, externalOpen }.
+
 6. Webhook Telegram (internal, bukan API publik untuk dashboard)
 POST /telegramWebhook
 Endpoint tunggal yang menerima semua update dari Telegram (pesan, callback query tombol inline). Divalidasi lewat secret token webhook Telegram, bukan Supabase JWT.
@@ -150,12 +176,21 @@ Ringkasan endpoint
 Endpoint	Method	Golongan minimum
 /registerRequest	POST	- (internal bot)
 /registerApprove	POST	admin only
-/tasks	POST	5 (SPV)
-/tasks	GET	semua
-/tasks/pendingApproval	GET	5
-/tasks/{id}/reports	POST	semua
+/signup	POST	- (publik, service role)
+/tasks	POST	5 (SPV; hanya ke bawahan)
+/tasks	GET	semua (scope: diri sendiri, atasan: subtree)
+/tasks/pendingApproval	GET	5 (hanya task assigned_by dirinya)
+/tasks/{id}/status	PATCH	5, harus atasan terkait
+/tasks/{id}/reports	POST	semua (hanya task miliknya)
 /tasks/{id}/reports/{id}/approve	POST	5, harus atasan terkait
-/tasks/{id}/problems	POST	semua
+/tasks/{id}/problems	POST	semua (hanya task miliknya)
+/tasks/{id}/problems/{id}/resolve	POST	5
+/problems	GET	5 (problem pada task assigned_by dirinya)
+/teams	GET/POST	5
+/teams/{id}/members	POST	5 (lead/creator team)
+/teams/{id}/stats	GET	5 (hanya id == diri sendiri)
+/external	POST	- (publik); GET 5
+/external/{id}/resolve	POST	5
+/dashboard/summary	GET	5
 /users/{id}/points	GET	semua (hanya data sendiri, kecuali atasan)
-/teams/{id}/stats	GET	5
 /telegramWebhook	POST	- (validasi via Telegram secret)

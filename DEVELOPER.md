@@ -76,6 +76,11 @@ vercel dev
 1.4 Struktur database yang perlu disiapkan
 Buat tabel-tabel berikut di Supabase (bisa via dashboard SQL Editor atau migration). Struktur field detail ada di PROJECT_BRIEF.md bagian architecture.
 
+> Migrasi `0009_teams.sql` dan `0010_external_requests.sql` menambah tabel
+> `teams`, `team_members`, `external_requests`, `telegram_external_convos` serta
+> function `get_subordinate_ids` (bawahan rekursif). Terapkan dengan
+> `supabase db push` atau tempel ke SQL Editor, urut setelah `0008`.
+
 -- users
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

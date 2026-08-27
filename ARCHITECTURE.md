@@ -78,7 +78,8 @@ Web app live di **`https://app.machapp.web.id`** (Vercel). Akun web dan Telegram
 - Penulisan `points_history` **hanya** lewat server dengan `SUPABASE_SERVICE_ROLE_KEY` (bypass RLS), agar poin tidak bisa dimanipulasi dari client.
 
 ### Database (Supabase PostgreSQL)
-Lihat `supabase/migrations/0001_initial_schema.sql`. Tabel: `users`, `pending_registrations`, `tasks`, `task_reports`, `task_problems`, `points_history`.
+Lihat `supabase/migrations/`. Tabel inti: `users`, `pending_registrations`, `tasks`, `task_reports`, `task_problems`, `points_history`.
+Tabel organisasi & laporan umum (migrasi `0009` + `0010`): `teams`, `team_members`, `external_requests`, `telegram_external_convos`. Function `get_subordinate_ids` menghitung bawahan rekursif lewat `users.atasan_id`.
 
 ### Autentikasi
 - Supabase Auth (email/password) untuk login web dashboard.
@@ -106,10 +107,11 @@ Status enum: `assigned` → `in_progress` → `report_submitted` → `approved` 
 ## 6. Alur utama
 
 1. **Registrasi / penautan Telegram**: user `/start` → input **NPK** → dicocokkan ke tabel `users`: kalau sudah ada (akun web) `telegram_chat_id` langsung di-set (penautan, tanpa isi data ulang); kalau belum → isi nama/golongan/title/email → `pending_registrations` → admin tap tombol Setujui/Tolak → `registerApprove` memindahkan ke `users` (email ikut tersimpan + notifikasi email "akun aktif" dikirim).
-2. **Assign task**: atasan (golongan ≥ 5) `POST /api/tasks` → task `assigned` → notif Telegram (+ email) ke pelaksana.
-3. **Kerjakan**: technician buka dashboard → lihat task → ubah status / submit completion report.
+2. **Assign task**: atasan (golongan ≥ 5) `POST /api/tasks` → task `assigned` → notif Telegram (+ email) ke pelaksana. Atasan hanya boleh menugaskan ke bawahan di subtree-nya.
+3. **Kerjakan**: technician buka dashboard → lihat task miliknya → ubah status / submit completion report. Bawahan tidak bisa melihat/complete task di luar `assigned_to`-nya.
 4. **Approval**: `POST /api/tasks/{id}/reports/{reportId}/approve` → transaksi atomik (status → `approved` + insert `points_history`) → notif pelaksana.
-5. **Problem**: `POST /api/tasks/{id}/problems` → notif prioritas tinggi langsung ke atasan (tanpa antrian approval).
+5. **Problem (task)**: `POST /api/tasks/{id}/problems` → notif prioritas tinggi langsung ke atasan (tanpa antrian approval).
+6. **Laporan umum & request**: `/laporan` dan `/request` (bot atau form web publik) → nama + NPK + deskripsi → `external_requests` → notif ke admin/channel + email atasan; atasan resolve lewat dashboard.
 
 ---
 
@@ -122,8 +124,11 @@ macha-app/
 │   ├── globals.css          # design tokens & komponen
 │   ├── page.js              # landing → redirect login/dashboard
 │   ├── login/page.js        # login & registrasi web
-│   ├── dashboard/page.js    # dashboard atasan
+│   ├── dashboard/page.js    # dashboard atasan (4 metric + problem + external)
 │   ├── tech/page.js         # dashboard technician
+│   ├── teams/page.js        # kelola team (atasan)
+│   ├── laporan/page.js      # form publik laporan masalah umum
+│   ├── request/page.js      # form publik permintaan improvement
 │   ├── tasks/new/page.js    # form buat task (atasan)
 │   ├── tasks/[id]/complete/page.js
 │   ├── tasks/[id]/problem/page.js
@@ -131,23 +136,33 @@ macha-app/
 │       ├── registerRequest/route.js
 │       ├── registerApprove/route.js
 │       ├── registerReject/route.js
-│       ├── tasks/route.js               # POST & GET
+│       ├── signup/route.js
+│       ├── tasks/route.js               # POST & GET (scoped)
 │       ├── tasks/pendingApproval/route.js
-│       ├── tasks/[id]/status/route.js   # PATCH
+│       ├── tasks/[id]/status/route.js   # PATCH (atasan terkait)
 │       ├── tasks/[id]/reports/route.js
 │       ├── tasks/[id]/reports/[reportId]/approve/route.js
 │       ├── tasks/[id]/reports/[reportId]/reject/route.js
 │       ├── tasks/[id]/problems/route.js
 │       ├── tasks/[id]/problems/[problemId]/resolve/route.js
-│       ├── users/[id]/points/route.js
+│       ├── problems/route.js            # list problem task (atasan)
+│       ├── teams/route.js               # GET/POST team
+│       ├── teams/[id]/members/route.js
 │       ├── teams/[id]/stats/route.js
+│       ├── external/route.js            # POST publik + GET atasan
+│       ├── external/[id]/resolve/route.js
+│       ├── dashboard/summary/route.js   # metric card
+│       ├── users/[id]/points/route.js
 │       └── telegramWebhook/route.js
 ├── components/             # TicketCard, Badge, MetricCard, dst.
 ├── lib/
 │   ├── supabase.js         # client browser + server + admin
 │   ├── auth.js             # helper verifikasi JWT + golongan
+│   ├── hierarchy.js        # helper subtree bawahan (RPC get_subordinate_ids)
+│   ├── email.js            # template email notifikasi
+│   ├── http.js             # apiFetch client
 │   └── telegram.js         # helper kirim pesan / edit keyboard
-├── supabase/migrations/    # SQL schema + RLS
+├── supabase/migrations/    # SQL schema + RLS (0001..0010)
 ├── ARCHITECTURE.md / DESIGN.md / API_SPEC.md / DEVELOPER.md
 ├── PROJECT_BRIEF.md / ROADMAP.md / TODOS.md / COMPLETED.md
 └── apicredential.md

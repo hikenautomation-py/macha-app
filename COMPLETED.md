@@ -92,8 +92,39 @@
 ### Validasi
 - [x] `npm run lint` ✅ (No ESLint warnings or errors)
 - [x] `npm run build` ✅ (14/14 halaman, semua route API ter-compile)
-- [ ] Migrasi `0007` di-apply ke Supabase produksi (oleh user) + deploy Vercel
+- [x] Migrasi `0007` di-apply ke Supabase produksi (oleh user) + deploy Vercel
 - [ ] Uji E2E penautan + alur registrasi baru di bot asli (butuh migrasi + deploy)
+
+---
+
+## 2026-08-27 — Teams, hierarki, laporan umum & polish dashboard
+
+### Organisasi & hierarki (Sprint 2)
+- [x] Migrasi `0009_teams.sql` — tabel `teams` + `team_members` + function `get_subordinate_ids` (recursive CTE)
+- [x] `lib/hierarchy.js` — `getSubordinateIds` / `getViewableUserIds` / `isWithinSubtree`
+- [x] `app/api/teams/route.js` — GET (daftar team) + POST (buat team)
+- [x] `app/api/teams/[id]/members/route.js` — tambah/hapus anggota + sinkron `users.atasan_id`
+- [x] `app/teams/page.js` — halaman kelola team (atasan)
+- [x] Pengetatan akses: `GET/POST /api/tasks`, `GET /api/tasks/pendingApproval`, `GET /api/teams/{id}/stats`, `PATCH /api/tasks/{id}/status`
+
+### Laporan umum & request (Sprint 5)
+- [x] Migrasi `0010_external_requests.sql` — tabel `external_requests` + `telegram_external_convos`
+- [x] `app/api/external/route.js` — POST publik + GET atasan
+- [x] `app/api/external/[id]/resolve/route.js` — resolve laporan umum/request
+- [x] `app/api/problems/route.js` — list problem report task (atasan)
+- [x] `app/api/dashboard/summary/route.js` — payload metric card
+- [x] `lib/email.js` — `emailExternalReport` (kirim ke semua atasan)
+- [x] Telegram `/laporan` & `/request` + alur multi-step nama → NPK → deskripsi
+- [x] Form web publik `/laporan` & `/request`
+
+### Polish dashboard (Sprint 5)
+- [x] Dashboard atasan: 4 metric card + section problem report + laporan umum/request + statistik tim
+
+### Validasi
+- [x] `npm run lint` ✅ (No ESLint warnings or errors)
+- [x] `npm run build` ✅ (22/22 halaman, semua route API ter-compile)
+- [ ] Apply migrasi `0009` & `0010` ke Supabase produksi — **butuh aksi user**
+- [ ] E2E bot asli untuk `/laporan` & `/request` — **butuh aksi user**
 
 ---
 - Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)

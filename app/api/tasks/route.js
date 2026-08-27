@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase';
 import { mapTask } from '@/lib/mappers';
 import { sendTelegramMessage, notifyTelegram } from '@/lib/telegram';
 import { emailTaskAssigned } from '@/lib/email';
+import { isAtasan } from '@/lib/constants';
+import { getSubordinateIds } from '@/lib/hierarchy';
 
 // POST /api/tasks — buat task baru (golongan >= 5)
 export async function POST(req) {
@@ -17,6 +19,12 @@ export async function POST(req) {
   }
 
   const admin = createAdminClient();
+
+  // Atasan hanya boleh menugaskan ke bawahannya (subtree atasan_id).
+  const subs = await getSubordinateIds(admin, profile.id);
+  if (!subs.includes(ditugaskanKe)) {
+    return jsonError(403, 'PERMISSION_DENIED', 'Kamu hanya bisa menugaskan task ke bawahan kamu');
+  }
   const { data: task, error: insErr } = await admin
     .from('tasks')
     .insert({
@@ -66,8 +74,9 @@ export async function POST(req) {
 }
 
 // GET /api/tasks?userId=&status= — daftar task (semua user)
+// Non-atasan hanya boleh lihat task miliknya; atasan boleh lihat subtree bawahan.
 export async function GET(req) {
-  const { error } = await requireAuth(req);
+  const { profile, error } = await requireAuth(req);
   if (error) return error;
 
   const url = new URL(req.url);
@@ -75,8 +84,22 @@ export async function GET(req) {
   const status = url.searchParams.get('status');
 
   const admin = createAdminClient();
+
+  if (userId) {
+    const viewable = isAtasan(profile)
+      ? [profile.id, ...(await getSubordinateIds(admin, profile.id))]
+      : [profile.id];
+    if (!viewable.includes(userId)) {
+      return jsonError(403, 'PERMISSION_DENIED', 'Kamu tidak punya akses ke task user ini');
+    }
+  }
+
   let q = admin.from('tasks').select('*').order('created_at', { ascending: false });
-  if (userId) q = q.eq('assigned_to', userId);
+  if (userId) {
+    q = q.eq('assigned_to', userId);
+  } else if (!isAtasan(profile)) {
+    q = q.eq('assigned_to', profile.id);
+  }
   if (status) q = q.eq('status', status);
 
   const { data, error: err } = await q;

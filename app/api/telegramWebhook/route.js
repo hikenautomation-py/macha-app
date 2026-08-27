@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram, setBotCommands } from '@/lib/telegram';
-import { emailRegistrationApproved } from '@/lib/email';
+import { emailRegistrationApproved, emailExternalReport } from '@/lib/email';
 import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL } from '@/lib/constants';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -63,9 +63,18 @@ export async function POST(req) {
     await handleRemoveChannel(admin, msg, chatId);
     return jsonOk({ received: true });
   }
+  if (text === '/laporan' || text === '/request') {
+    await handleStartExternalReport(admin, msg, chatId, text === '/request' ? 'improvement' : 'problem');
+    return jsonOk({ received: true });
+  }
 
   // 2c) Teks lanjutan dari aksi tombol task (Lapor / Update / Selesai).
   if (await handleTaskContextInput(admin, msg, chatId, text)) {
+    return jsonOk({ received: true });
+  }
+
+  // 2d) Teks lanjutan dari /laporan atau /request (nama → NPK → deskripsi).
+  if (await handleExternalReportInput(admin, msg, chatId, text)) {
     return jsonOk({ received: true });
   }
 
@@ -239,6 +248,100 @@ async function handleTaskContextInput(admin, msg, chatId, text) {
   return false;
 }
 
+// ---------- Alur /laporan & /request ----------
+// Tidak wajib terdaftar; pelapor diminta nama → NPK → deskripsi. Data masuk ke
+// tabel `external_requests` dan notif ke admin/channel.
+const EXTERNAL_TYPE_LABEL = { problem: '🚨 LAPORAN MASALAH', improvement: '💡 PERMINTAAN IMPROVEMENT' };
+
+async function handleStartExternalReport(admin, msg, chatId, type) {
+  await admin.from('telegram_external_convos').upsert({
+    chat_id: String(chatId),
+    type,
+    step: 'nama',
+    nama: null,
+    npk: null,
+  });
+  const prompt =
+    type === 'problem'
+      ? 'Baik, kita buat laporan masalah umum. Siapa nama lengkap kamu?'
+      : 'Oke, kita ajukan permintaan improvement. Siapa nama lengkap kamu?';
+  await sendTelegramMessage(chatId, prompt);
+}
+
+async function handleExternalReportInput(admin, msg, chatId, text) {
+  const { data: ctx } = await admin
+    .from('telegram_external_convos')
+    .select('*')
+    .eq('chat_id', String(chatId))
+    .maybeSingle();
+  if (!ctx) return false;
+
+  if (ctx.step === 'nama') {
+    if (!text) {
+      await sendTelegramMessage(chatId, 'Tulis nama kamu dulu ya.');
+      return true;
+    }
+    await admin.from('telegram_external_convos').update({ step: 'npk', nama: text.trim() }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(chatId, 'Terima kasih. Berapa NPK kamu? (kalau tidak ada, ketik <code>-</code>)');
+    return true;
+  }
+
+  if (ctx.step === 'npk') {
+    const npk = text.trim() === '-' ? null : text.trim();
+    await admin.from('telegram_external_convos').update({ step: 'deskripsi', npk }).eq('chat_id', String(chatId));
+    await sendTelegramMessage(
+      chatId,
+      ctx.type === 'problem'
+        ? 'Jelaskan masalah yang ingin dilaporkan ke tim engineering.'
+        : 'Jelaskan improvement yang kamu usulkan.'
+    );
+    return true;
+  }
+
+  if (ctx.step === 'deskripsi') {
+    const deskripsi = text?.trim();
+    await admin.from('telegram_external_convos').delete().eq('chat_id', String(chatId));
+    if (!deskripsi) {
+      await sendTelegramMessage(chatId, 'Deskripsi tidak boleh kosong. Coba lagi dengan /laporan atau /request ya.');
+      return true;
+    }
+
+    const { data: row, error } = await admin
+      .from('external_requests')
+      .insert({
+        type: ctx.type,
+        nama: ctx.nama,
+        npk: ctx.npk,
+        telegram_chat_id: String(chatId),
+        description: deskripsi,
+        status: 'open',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      await sendTelegramMessage(chatId, 'Maaf, laporan gagal tersimpan. Coba lagi ya.');
+      return true;
+    }
+
+    const label = EXTERNAL_TYPE_LABEL[ctx.type];
+    const notif = `${label}\nDari: ${row.nama}${row.npk ? ` (NPK ${row.npk})` : ''}\n\n${row.description}`;
+    if (ADMIN_CHAT_ID) await sendTelegramMessage(ADMIN_CHAT_ID, notif);
+    await notifyTelegram(admin, null, notif);
+    await emailExternalReport(admin, { type: ctx.type, nama: row.nama, npk: row.npk, deskripsi: row.description });
+
+    await sendTelegramMessage(
+      chatId,
+      ctx.type === 'problem'
+        ? '✅ Laporan masalah kamu sudah diterima tim engineering. Terima kasih!'
+        : '✅ Permintaan improvement kamu sudah diterima. Terima kasih!'
+    );
+    return true;
+  }
+
+  return false;
+}
+
 // ---------- Alur /start ----------
 async function handleStart(admin, chatId) {
   const { data: user } = await admin
@@ -291,6 +394,8 @@ async function handleHelp(chatId) {
     'Berikut perintah bot ini 🤖\n\n' +
       '<b>Perintah</b>\n' +
       '/start — Mulai atau daftarkan diri.\n' +
+      '/laporan — Laporkan masalah umum (tanpa akun, cukup nama & NPK).\n' +
+      '/request — Ajukan permintaan improvement (tanpa akun).\n' +
       '/help — Tampilkan bantuan (ini).\n\n' +
       '<b>Lapor task</b> (balas notifikasi task yang ada tag #task_...)\n' +
       '• Lampirkan <b>foto</b> saat membalas → lapor selesai.\n' +

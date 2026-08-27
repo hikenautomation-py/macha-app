@@ -1,0 +1,180 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthContext';
+import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { isAtasan } from '@/lib/constants';
+import AppBar from '@/components/AppBar';
+import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
+
+export default function Teams() {
+  const { session, profile, loading, signOut } = useAuth();
+  const router = useRouter();
+  const token = session?.access_token;
+
+  const [teams, setTeams] = useState([]);
+  const [subordinates, setSubordinates] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState('');
+  const [nama, setNama] = useState('');
+  const [leadId, setLeadId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [memberTeamId, setMemberTeamId] = useState(null);
+  const [memberUserId, setMemberUserId] = useState('');
+  const [memberBusy, setMemberBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!token || !profile) return;
+    setError('');
+    setLoadingData(true);
+    try {
+      const [tRes, sRes] = await Promise.all([
+        apiFetch(token, '/api/teams'),
+        apiFetch(token, `/api/teams/${profile.id}/stats`),
+      ]);
+      if (!tRes.ok) setError(apiErrorMessage(tRes));
+      else setTeams(tRes.json?.data || []);
+      if (!sRes.ok) setError((e) => e || apiErrorMessage(sRes));
+      else setSubordinates(sRes.json?.data || []);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [token, profile]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+    if (profile && !isAtasan(profile)) {
+      router.replace('/tech');
+      return;
+    }
+    if (profile) load();
+  }, [loading, session, profile, router, load]);
+
+  async function createTeam(e) {
+    e.preventDefault();
+    setError('');
+    if (!nama.trim()) {
+      setError('Nama team wajib diisi.');
+      return;
+    }
+    setBusy(true);
+    const res = await apiFetch(token, '/api/teams', {
+      method: 'POST',
+      body: { nama: nama.trim(), leadId: leadId || null },
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setError(apiErrorMessage(res));
+      return;
+    }
+    setNama('');
+    setLeadId('');
+    await load();
+  }
+
+  async function manageMember(teamId, action) {
+    if (!memberUserId) {
+      setError('Pilih anggota dulu.');
+      return;
+    }
+    setMemberBusy(true);
+    setError('');
+    const res = await apiFetch(token, `/api/teams/${teamId}/members`, {
+      method: 'POST',
+      body: { userId: memberUserId, action },
+    });
+    setMemberBusy(false);
+    if (!res.ok) {
+      setError(apiErrorMessage(res));
+      return;
+    }
+    setMemberUserId('');
+    setMemberTeamId(null);
+    await load();
+  }
+
+  return (
+    <div className="container">
+      <AppBar
+        actions={
+          <>
+            <button className="btn btn-primary" onClick={() => router.push('/dashboard')}>← Dashboard</button>
+            <button className="link-btn" onClick={() => signOut()}>Keluar</button>
+          </>
+        }
+      />
+
+      <div className="greet-blob">
+        <h2>Kelola tim</h2>
+        <p>Buat team dan tentukan siapa lead beserta anggotanya.</p>
+      </div>
+
+      {error ? <p className="err show" role="alert">{error}</p> : null}
+
+      <form className="card" onSubmit={createTeam}>
+        <label className="f-label">Nama team</label>
+        <input className="f-input" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Line 1 / Machining / Assembly" />
+
+        <label className="f-label" style={{ marginTop: 12 }}>Lead team (opsional, default kamu)</label>
+        <select className="f-input" value={leadId} onChange={(e) => setLeadId(e.target.value)}>
+          <option value="">Kamu sendiri</option>
+          {subordinates.map((s) => (
+            <option key={s.userId} value={s.userId}>{s.nama} ({s.title})</option>
+          ))}
+        </select>
+
+        <button className="btn btn-primary btn-block" type="submit" disabled={busy} style={{ marginTop: 18 }}>
+          {busy ? 'Membuat…' : 'Buat team'}
+        </button>
+      </form>
+
+      <div className="section-title">Team kamu</div>
+      {loadingData ? (
+        <Loading />
+      ) : teams.length === 0 ? (
+        <EmptyState>Belum ada team. Buat team pertama kamu di atas.</EmptyState>
+      ) : (
+        teams.map((t) => (
+          <div className="card" key={t.id} style={{ marginBottom: 12 }}>
+            <div className="t-title">{t.nama}</div>
+            <div className="t-meta" style={{ marginTop: 4 }}>
+              Anggota: {t.members?.length || 0}
+            </div>
+            <ul style={{ paddingLeft: 18, margin: '10px 0' }}>
+              {(t.members || []).map((m) => (
+                <li key={m.user_id} style={{ fontSize: 13 }}>
+                  {m.users?.nama || m.user_id}{m.role === 'lead' ? ' (lead)' : ''}
+                </li>
+              ))}
+            </ul>
+
+            {memberTeamId === t.id ? (
+              <div style={{ marginTop: 10 }}>
+                <label className="f-label">Pilih anggota (bawahan kamu)</label>
+                <select className="f-input" value={memberUserId} onChange={(e) => setMemberUserId(e.target.value)}>
+                  <option value="">— Pilih anggota —</option>
+                  {subordinates.map((s) => (
+                    <option key={s.userId} value={s.userId}>{s.nama} ({s.title})</option>
+                  ))}
+                </select>
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn btn-primary" disabled={memberBusy} onClick={() => manageMember(t.id, 'add')}>Tambah</button>
+                  <button className="btn btn-danger-outline" disabled={memberBusy} onClick={() => manageMember(t.id, 'remove')}>Hapus</button>
+                  <button className="link-btn" onClick={() => setMemberTeamId(null)}>Batal</button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn" onClick={() => setMemberTeamId(t.id)}>Kelola anggota</button>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}

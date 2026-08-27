@@ -94,12 +94,15 @@ Berikut alur pemakaian bot **setelah** bot dibuat, token terpasang, dan webhook 
 | Perintah | Fungsi | Siapa |
 | --- | --- | --- |
 | `/start` | Mulai / daftarkan diri ke bot — ketik NPK untuk menautkan akun web, atau lanjut registrasi (chat pribadi) | Semua karyawan |
+| `/laporan` | Laporkan masalah umum (tanpa akun, cukup nama + NPK) | Siapa pun (termasuk non-karyawan) |
+| `/request` | Ajukan permintaan improvement (tanpa akun, cukup nama + NPK) | Siapa pun (termasuk non-karyawan) |
 | `/help` | Tampilkan daftar perintah & cara lapor task | Semua karyawan |
 | `/daftargrup` | Daftarkan group/channel agar semua notif masuk ke sana | Admin (di dalam group/channel) |
 | `/hapusgrup` | Hapus group/channel dari daftar penerima notif | Admin (di dalam group/channel) |
 
-> Saat user mengetik `/` di chat, menu perintah bot otomatis muncul (`/start` dan `/help`)
-> berkat `setMyCommands`. Menu disegarkan otomatis setiap ada perintah setelah deploy.
+> Saat user mengetik `/` di chat, menu perintah bot otomatis muncul
+> (`/start`, `/laporan`, `/request`, `/help`) berkat `setMyCommands`.
+> Menu disegarkan otomatis setiap ada perintah setelah deploy.
 
 > **Notifikasi task baru** di chat pribadi pelaksana kini punya 3 tombol aksi:
 > - `🚨 Lapor` → lapor masalah task (bisa awali dengan urgensi: mendesak / perlu hari ini / bisa nunggu)
@@ -204,6 +207,20 @@ Ada dua cara:
 
 **B. Lewat web dashboard:**
 - Buka dashboard → task → **Lapor masalah** → pilih urgensi + deskripsi → submit.
+
+### Alur 5 — Laporan masalah umum & permintaan improvement (tanpa akun)
+
+Untuk seksi lain (mis. produksi) yang tidak punya akun web, tersedia dua perintah:
+
+1. Kirim `/laporan` (masalah umum) atau `/request` (improvement).
+2. Bot bertanya **nama lengkap** → jawab nama.
+3. Bot bertanya **NPK** → jawab NPK (ketik `-` kalau tidak ada).
+4. Bot bertanya **deskripsi** → jawab masalah/usulan.
+5. Laporan masuk ke `external_requests`, notif diteruskan ke admin/channel, dan
+   email dikirim ke atasan. Atasan menyelesaikan lewat dashboard web.
+
+Alternatif: buka form web publik di `app.machapp.web.id/laporan` dan
+`app.machapp.web.id/request`.
 
 ### Rangkuman notifikasi
 

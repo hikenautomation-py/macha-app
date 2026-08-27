@@ -4,9 +4,9 @@ import { mapTask } from '@/lib/mappers';
 
 const VALID = ['assigned', 'in_progress', 'report_submitted', 'approved', 'rejected'];
 
-// PATCH /api/tasks/{id}/status — ubah status task (golongan >= 5)
+// PATCH /api/tasks/{id}/status — ubah status task (atasan terkait)
 export async function PATCH(req, { params }) {
-  const { error } = await requireAtasan(req);
+  const { profile, error } = await requireAtasan(req);
   if (error) return error;
 
   const body = await req.json().catch(() => null);
@@ -17,6 +17,12 @@ export async function PATCH(req, { params }) {
   }
 
   const admin = createAdminClient();
+  const { data: task } = await admin.from('tasks').select('*').eq('id', params.id).maybeSingle();
+  if (!task) return jsonError(404, 'NOT_FOUND', 'Task tidak ditemukan');
+  if (task.assigned_by !== profile.id) {
+    return jsonError(403, 'PERMISSION_DENIED', 'Kamu bukan atasan dari task ini');
+  }
+
   const { data, error: err } = await admin
     .from('tasks')
     .update({ status })

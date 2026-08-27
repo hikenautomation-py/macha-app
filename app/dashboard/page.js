@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
-import { isAtasan } from '@/lib/constants';
+import { isAtasan, URGENCY_LABEL } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
@@ -15,26 +15,40 @@ export default function Dashboard() {
   const token = session?.access_token;
 
   const [pending, setPending] = useState([]);
+  const [summary, setSummary] = useState({});
   const [team, setTeam] = useState([]);
+  const [problems, setProblems] = useState([]);
+  const [externals, setExternals] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [revisiFor, setRevisiFor] = useState(null);
   const [revisiNote, setRevisiNote] = useState('');
+  const [resolveFor, setResolveFor] = useState(null);
+  const [resolveNote, setResolveNote] = useState('');
 
   const load = useCallback(async () => {
     if (!token || !profile) return;
     setError('');
     setLoadingData(true);
     try {
-      const [pRes, tRes] = await Promise.all([
+      const [pRes, sRes, tRes, probRes, extRes] = await Promise.all([
         apiFetch(token, '/api/tasks/pendingApproval'),
+        apiFetch(token, '/api/dashboard/summary'),
         apiFetch(token, `/api/teams/${profile.id}/stats`),
+        apiFetch(token, '/api/problems?status=open'),
+        apiFetch(token, '/api/external?status=open'),
       ]);
       if (!pRes.ok) setError(apiErrorMessage(pRes));
       else setPending(pRes.json?.data || []);
+      if (!sRes.ok) setError((e) => e || apiErrorMessage(sRes));
+      else setSummary(sRes.json?.data || {});
       if (!tRes.ok) setError((e) => e || apiErrorMessage(tRes));
       else setTeam(tRes.json?.data || []);
+      if (!probRes.ok) setError((e) => e || apiErrorMessage(probRes));
+      else setProblems(probRes.json?.data || []);
+      if (!extRes.ok) setError((e) => e || apiErrorMessage(extRes));
+      else setExternals(extRes.json?.data || []);
     } finally {
       setLoadingData(false);
     }
@@ -89,13 +103,52 @@ export default function Dashboard() {
     await load();
   }
 
-  const totalPoinTim = team.reduce((s, m) => s + (m.poin || 0), 0);
+  function openResolve(item) {
+    setResolveFor(item);
+    setResolveNote('');
+    setError('');
+  }
+
+  async function submitResolveProblem(item) {
+    if (!resolveNote.trim()) {
+      setError('Isi dulu keputusan / tindakan yang diambil.');
+      return;
+    }
+    setBusyId(item.problemId);
+    const res = await apiFetch(token, `/api/tasks/${item.taskId}/problems/${item.problemId}/resolve`, {
+      method: 'POST',
+      body: { keputusan: resolveNote.trim() },
+    });
+    if (!res.ok) setError(apiErrorMessage(res));
+    setBusyId(null);
+    setResolveFor(null);
+    setResolveNote('');
+    await load();
+  }
+
+  async function submitResolveExternal(item) {
+    if (!resolveNote.trim()) {
+      setError('Isi dulu keputusan / tindakan yang diambil.');
+      return;
+    }
+    setBusyId(item.id);
+    const res = await apiFetch(token, `/api/external/${item.id}/resolve`, {
+      method: 'POST',
+      body: { keputusan: resolveNote.trim() },
+    });
+    if (!res.ok) setError(apiErrorMessage(res));
+    setBusyId(null);
+    setResolveFor(null);
+    setResolveNote('');
+    await load();
+  }
 
   return (
     <div className="container">
       <AppBar
         actions={
           <>
+            <button className="btn" onClick={() => router.push('/teams')}>Kelola tim</button>
             <button className="btn btn-primary" onClick={() => router.push('/tasks/new')}>+ Buat task</button>
             <button className="link-btn" onClick={() => signOut()}>Keluar</button>
           </>
@@ -109,16 +162,20 @@ export default function Dashboard() {
 
       <div className="grid-metrics">
         <div className="metric">
-          <div className="metric-label">Menunggu approval</div>
-          <div className="metric-num">{pending.length}</div>
+          <div className="metric-label">Task aktif</div>
+          <div className="metric-num">{summary.taskAktif ?? 0}</div>
         </div>
         <div className="metric">
-          <div className="metric-label">Anggota tim</div>
-          <div className="metric-num">{team.length}</div>
+          <div className="metric-label">Menunggu approval</div>
+          <div className="metric-num">{summary.menungguApproval ?? 0}</div>
+        </div>
+        <div className="metric">
+          <div className="metric-label">Problem report</div>
+          <div className="metric-num">{summary.problemOpen ?? 0}</div>
         </div>
         <div className="metric">
           <div className="metric-label">Poin tim (bulan ini)</div>
-          <div className="metric-num">{totalPoinTim}</div>
+          <div className="metric-num">{summary.totalPoinTim ?? 0}</div>
         </div>
       </div>
 
@@ -169,6 +226,80 @@ export default function Dashboard() {
                   <span aria-hidden="true">↩️</span> Revisi
                 </button>
               </div>
+            )}
+          </div>
+        ))
+      )}
+
+      <div className="section-title">Problem report (task)</div>
+      {problems.length === 0 ? (
+        <EmptyState>Belum ada problem report yang terbuka.</EmptyState>
+      ) : (
+        problems.map((p) => (
+          <div className="card" key={p.problemId} style={{ marginBottom: 12 }}>
+            <div className="t-title">{p.judul}</div>
+            <div className="t-meta" style={{ marginTop: 4 }}>
+              {URGENCY_LABEL[p.urgensi] || p.urgensi} · {p.namaPelapor || '-'}
+            </div>
+            <p className="muted" style={{ marginTop: 8 }}>“{p.deskripsiMasalah}”</p>
+
+            {resolveFor?.problemId === p.problemId ? (
+              <div style={{ marginTop: 12 }}>
+                <label className="f-label" htmlFor={`resolve-${p.problemId}`}>Keputusan / tindakan</label>
+                <textarea
+                  id={`resolve-${p.problemId}`}
+                  className="f-input"
+                  style={{ minHeight: 70 }}
+                  value={resolveNote}
+                  onChange={(e) => setResolveNote(e.target.value)}
+                  placeholder="Tindakan yang diambil untuk menyelesaikan masalah"
+                />
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn btn-primary" disabled={busyId === p.problemId} onClick={() => submitResolveProblem(p)}>
+                    {busyId === p.problemId ? 'Mengirim…' : 'Tandai selesai'}
+                  </button>
+                  <button className="link-btn" onClick={() => setResolveFor(null)}>Batal</button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn" style={{ marginTop: 12 }} onClick={() => openResolve(p)}>Resolve</button>
+            )}
+          </div>
+        ))
+      )}
+
+      <div className="section-title">Laporan umum & request</div>
+      {externals.length === 0 ? (
+        <EmptyState>Belum ada laporan umum atau request yang terbuka.</EmptyState>
+      ) : (
+        externals.map((e) => (
+          <div className="card" key={e.id} style={{ marginBottom: 12 }}>
+            <div className="t-title">{e.type === 'problem' ? '🚨 Laporan masalah' : '💡 Permintaan improvement'}</div>
+            <div className="t-meta" style={{ marginTop: 4 }}>
+              {e.nama}{e.npk ? ` · NPK ${e.npk}` : ''}
+            </div>
+            <p className="muted" style={{ marginTop: 8 }}>“{e.description}”</p>
+
+            {resolveFor?.id === e.id ? (
+              <div style={{ marginTop: 12 }}>
+                <label className="f-label" htmlFor={`resolve-ext-${e.id}`}>Keputusan / tindakan</label>
+                <textarea
+                  id={`resolve-ext-${e.id}`}
+                  className="f-input"
+                  style={{ minHeight: 70 }}
+                  value={resolveNote}
+                  onChange={(ev) => setResolveNote(ev.target.value)}
+                  placeholder="Tindakan yang diambil"
+                />
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn btn-primary" disabled={busyId === e.id} onClick={() => submitResolveExternal(e)}>
+                    {busyId === e.id ? 'Mengirim…' : 'Tandai selesai'}
+                  </button>
+                  <button className="link-btn" onClick={() => setResolveFor(null)}>Batal</button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn" style={{ marginTop: 12 }} onClick={() => openResolve(e)}>Resolve</button>
             )}
           </div>
         ))

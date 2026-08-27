@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-26): `npm run build` ✅ dan `npm run lint` ✅. Web app live di **`app.machapp.web.id`** (Vercel). E2E API test **14/14 PASS** ke produksi. Broadcast group/channel Telegram + email Resend (`Macha App <notif.machapp.web.id>`) sudah terimplementasi. Penautan **Web ↔ Telegram via NPK** selesai di kode — menunggu apply migrasi `0007` + deploy + E2E bot asli. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **belum di-apply ke Supabase produksi** — butuh aksi user. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -37,7 +37,11 @@
 
 - [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
 - [x] Alur `/start` → **NPK dulu** → cocokkan ke `users`: sudah ada → penautan `telegram_chat_id` (akun web); belum ada → registrasi nama/golongan/title/email → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai, butuh migrasi `0007`)
-- [ ] Uji end-to-end alur registrasi + penautan dengan bot Telegram asli (butuh akun Telegram + admin asli + migrasi `0007` diterapkan)
+- [ ] Uji end-to-end alur registrasi + penautan dengan bot Telegram asli (butuh akun Telegram + admin asli + migrasi `0007` diterapkan) — **butuh aksi user**
+- [x] Struktur organisasi dibuat seperti ini: SM memilih team, ASM membuat team dan siapa saja dibawahnya (migrasi `0009` tabel `teams` + `team_members`; halaman `/teams` untuk kelola team)
+- [x] Hubungan atasan dan bawahan lebih jelas: atasan menentukan siapa bawahannya lewat team; golongan atas lihat task & completion semua bawahannya (rekursif via `atasan_id` + RPC `get_subordinate_ids`); tidak bisa melihat task/statistik golongan di atasnya (validasi scope di API)
+- [x] Task yang bisa di-complete/di-update bawahan hanya task miliknya (GET `/tasks` non-atasan di-scope ke `assigned_to` sendiri; report/problem sudah cek `assigned_to !== profile.id`)
+
 
 ## Sprint 3 — Task assignment & notifikasi
 
@@ -59,8 +63,9 @@
 - [x] Uji form problem report (POST problem) (E2E ✅)
 - [x] Uji endpoint `/users/{id}/points` dan `/teams/{id}/stats` (E2E ✅)
 - [x] Wiring notif prioritas tinggi ke atasan (via `notifyTelegram`, route `problems`)
-- [ ] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli)
-- [ ] Uji metric card dashboard atasan + kartu "poin bulan ini" (polish UI)
+- [ ] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli) — **butuh aksi user**
+- [x] Problem report bisa dilakukan siapapun: perintah Telegram `/laporan` (laporan masalah umum) + `/request` (permintaan improvement), plus form web publik `/laporan` & `/request`. Data masuk tabel `external_requests`, pelapor wajib isi nama + NPK (tidak wajib terdaftar).
+- [x] Metric card dashboard atasan jadi 4 kartu (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini) + section problem report & laporan umum/request (migrasi `0010`, route `/api/dashboard/summary`)
 
 ## Sprint 6 — Email & polish
 
@@ -79,7 +84,7 @@
 - [x] Perintah admin bot: `/daftargrup` & `/hapusgrup`
 - [x] Notifikasi completion/problem di semua route task memakai `notifyTelegram`
 - [x] `SETUP_TELEGRAM.md` diperbarui (alur bot lengkap: registrasi, group/channel, laporan, ringkasan notifikasi)
-- [ ] Validasi `/daftargrup` di group/channel asli (bot jadi admin + disable Group Privacy) — butuh aksi user
+- [x] Validasi `/daftargrup` di group/channel asli (bot jadi admin + disable Group Privacy) — butuh aksi user
 
 ## Fitur penautan Web ↔ Telegram via NPK (SELESAI — menunggu deploy & E2E)
 
@@ -89,7 +94,7 @@
 - [x] Pesan akhir registrasi: menunggu approval + saran login web app `app.machapp.web.id`
 - [x] `registerApprove`/`registerRequest` menyimpan `email`; `getUserEmail` fallback ke `users.email` (notifikasi email untuk user Telegram)
 - [x] Email "akun aktif" (`emailRegistrationApproved`) terkirim saat approval
-- [ ] Apply migrasi `0007` ke Supabase produksi + deploy Vercel
+- [x] Apply migrasi `0007` ke Supabase produksi + deploy Vercel
 - [ ] Uji E2E penautan + alur registrasi baru dengan bot asli
 
 ---
@@ -108,3 +113,5 @@
 - [ ] Onboarding singkat (`/start` bot + cara submit laporan)
 - [ ] Monitoring ketat minggu pertama + hotfix cepat
 - [ ] Kumpulkan masukan roadmap fase berikutnya
+
+

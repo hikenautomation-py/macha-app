@@ -29,7 +29,7 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 ### Batasan yang membentuk arsitektur
 - Internet kantor (jaringan kantor/PC) hanya untuk golongan 6 ke atas — tim engineering dibebaskan pakai HP pribadi dengan kuota sendiri, sehingga ini bukan blocker.
 - Email kantor diatur ketat oleh IT pusat Jepang — hanya kirim notifikasi masuk yang dilakukan, tidak ada integrasi baca/kirim dari akun kantor.
-- Hosting dan backend menggunakan layanan cloud (Firebase) untuk menghindari birokrasi approval IT lokal atas server on-premise.
+- Hosting dan backend menggunakan layanan cloud (Supabase + Vercel) untuk menghindari birokrasi approval IT lokal atas server on-premise.
 
 ---
 
@@ -81,10 +81,16 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 ## 3. Deskripsi fitur per halaman
 
 ### Registrasi & approval Telegram
-User baru kirim `/start` ke bot → isi nama, NPK, golongan → status `pending` → admin telegram dapat notifikasi dengan tombol inline Setujui/Tolak → jika disetujui, `chat_id` terhubung ke akun user di database.
+User baru kirim `/start` ke bot → isi NPK dulu → cocokkan ke `users` (penautan akun web) atau lanjut nama, NPK, golongan, title, email → status `pending` → admin telegram dapat notifikasi dengan tombol inline Setujui/Tolak → jika disetujui, `chat_id` terhubung ke akun user di database.
+
+### Organisasi & hierarki (teams)
+SM/ASM/SPV membuat `teams` (lead + anggota) lewat halaman `/teams`. Saat anggota ditambahkan, `users.atasan_id` di-set ke lead team. Visibilitas task & statistik mengikuti subtree `atasan_id` secara rekursif; atasan hanya bisa menugaskan/melihat bawahan, tidak bisa melihat ke atas.
 
 ### Dashboard atasan
-Ringkasan metrik (task aktif, menunggu approval, problem report, total poin tim), daftar antrian approval, tabel statistik kinerja tim per individu. Tombol "Buat task baru" untuk assign task ke bawahan.
+Ringkasan metrik (task aktif, menunggu approval, problem report, poin tim bulan ini), daftar antrian approval, section problem report, section laporan umum & request, tabel statistik kinerja tim per individu. Tombol "Buat task baru" dan "Kelola tim".
+
+### Laporan umum & request (lintas seksi)
+Perintah bot `/laporan` (masalah umum) dan `/request` (improvement), plus form web publik, menerima laporan dari seksi lain tanpa wajib punya akun (cukup nama + NPK). Data masuk ke `external_requests` dan ditindaklanjuti engineering.
 
 ### Dashboard technician/operator
 Sapaan personal, daftar task hari ini dengan status berwarna, dua tombol aksi utama (Lapor selesai / Lapor masalah), ringkasan poin bulan berjalan di bagian bawah (bukan fokus utama).
@@ -100,21 +106,20 @@ Field: tingkat urgensi (bisa nunggu / perlu hari ini / mendesak), deskripsi masa
 ## 4. Architecture
 
 ### Ringkasan
-Aplikasi di-hosting sepenuhnya di layanan cloud (Firebase) untuk menghindari proses approval IT lokal yang panjang. Golongan pelaksana mengakses lewat browser HP pribadi (data seluler), golongan atasan lewat internet kantor atau HP pribadi. Notifikasi dikirim lewat Telegram bot (channel utama, real-time) dan email kantor (channel tambahan, satu arah).
+Aplikasi di-hosting sepenuhnya di layanan cloud (Supabase + Vercel) untuk menghindari proses approval IT lokal yang panjang. Golongan pelaksana mengakses lewat browser HP pribadi (data seluler), golongan atasan lewat internet kantor atau HP pribadi. Notifikasi dikirim lewat Telegram bot (channel utama, real-time) dan email kantor (channel tambahan, satu arah).
 
 ```
 ┌─────────────────────────────────────────────────┐
 │                 Vercel project                  │
 │                                                 │
-│  Hosting (web dashboard)                        │
-│  Cloud Functions (API, business logic)          │
-│  Firestore (database)                           │
-│  Firebase Auth (login)                          │
+│  Hosting (web dashboard, Next.js)               │
+│  Serverless Functions (API, business logic)     │
+│  Supabase (Postgres + Auth + Storage)           │
 └───────────────┬──────────────────┬──────────────┘
                 │                  │
         ┌───────▼───────┐   ┌──────▼────────┐
         │ Telegram Bot  │   │ Email service │
-        │ API           │   │ (Resend/Gmail)│
+        │ API           │   │ (Resend)      │
         └───────┬───────┘   └──────┬────-───┘
                 │                  │
       ┌─────────▼─────────┐  ┌─────▼───────┐
@@ -127,23 +132,25 @@ Aplikasi di-hosting sepenuhnya di layanan cloud (Firebase) untuk menghindari pro
 ### Komponen
 
 **Frontend**
-- Web app (React atau HTML/JS ringan), di-hosting di Firebase Hosting
+- Web app Next.js (App Router), di-hosting di Vercel
 - Mobile-first responsive, karena mayoritas pengguna akses via HP
 
 **Backend**
-- Firebase Cloud Functions sebagai API layer — menangani logic assign task, approval, kalkulasi poin, webhook Telegram
-- Semua outbound call (Telegram API, email service) berasal dari server Cloud Functions, tidak dari device pengguna, sehingga tidak terikat batasan internet kantor
+- Next.js API routes di Vercel (serverless functions) sebagai API layer — menangani logic assign task, approval, kalkulasi poin, webhook Telegram
+- Semua outbound call (Telegram API, email service, service role) berasal dari server, tidak dari device pengguna, sehingga tidak terikat batasan internet kantor
 
-**Database — Firestore**
-- `users/{userId}` — profil, golongan, `telegram_chat_id`, referensi atasan
-- `pending_registrations/{chatId}` — user yang menunggu approval admin telegram
-- `tasks/{taskId}` — task individual dengan status, bobot poin, deadline
-- `tasks/{taskId}/reports/{reportId}` — subcollection completion report per task
-- `tasks/{taskId}/problems/{problemId}` — subcollection problem report per task
-- `pointsHistory/{entryId}` — log poin, collection root karena sering di-query lintas task
+**Database — Supabase PostgreSQL**
+- `users` — profil, golongan, `atasan_id`, `telegram_chat_id`
+- `pending_registrations` — user yang menunggu approval admin telegram
+- `teams` + `team_members` — organisasi team (lead + anggota)
+- `tasks` — task individual dengan status, bobot poin, deadline
+- `task_reports` — completion report per task
+- `task_problems` — problem report per task
+- `external_requests` — laporan umum & request lintas seksi
+- `points_history` — log poin, query lintas task
 
 **Autentikasi**
-- Firebase Auth untuk login web dashboard (email/password atau custom token yang dipetakan dari NPK)
+- Supabase Auth (email/password) untuk login web dashboard
 - Telegram chat_id sebagai identitas alternatif untuk interaksi via bot, divalidasi lewat proses approval admin
 
 **Notifikasi**
@@ -160,4 +167,4 @@ assigned → in_progress → report_submitted → approved (poin ditambahkan)
 - **Tidak butuh approval IT lokal** untuk hosting server, karena semuanya di cloud publik
 - **Tidak butuh approval IT pusat Jepang**, karena tidak menyentuh mailbox kantor — hanya kirim email masuk biasa
 - **Tidak terikat pembatasan internet kantor**, karena semua akses lewat HP pribadi dengan kuota sendiri
-- **Firestore + Cloud Functions** dipilih atas SQL karena skema masih akan berkembang di tahap awal, real-time listener bagus untuk dashboard yang auto-update, dan tier gratis cukup untuk skala tim kecil-menengah
+- **Supabase (Postgres) + Vercel Serverless Functions** dipilih karena relasi task → reports → points bersifat transaksional (approval = status + poin dalam satu transaksi), RLS membatasi akses client, dan tier gratis cukup untuk skala tim kecil-menengah
