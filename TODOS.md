@@ -73,8 +73,9 @@
 - [x] Kirim email test Resend sandbox → `hikenautomation@gmail.com` (HTTP 200)
 - [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
 - [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <info@notif.machapp.web.id>` (dikonfirmasi user; reply-to ditambahkan ke notifikasi task/report/approval)
-- [x] Tes spam kantor: kirim email test ke `dedy_supriyanto@taci.toyota-industries.com` (Resend HTTP 200) — menunggu konfirmasi user apakah masuk inbox atau spam
-- [ ] Fix email laporan ke atasan gagal 422 di produksi: `EMAIL_FROM` Vercel produksi sudah di-update ke `info@notif.machapp.web.id` + redeploy — menunggu verifikasi ulang setelah deploy selesai
+- [x] Tes spam kantor: kirim email test ke `dedy_supriyanto@taci.toyota-industries.com` (Resend HTTP 200) — email BELUM masuk inbox; penyebab DNS SPF `notif.machapp.web.id` belum ada/terverifikasi
+- [ ] Fix email laporan ke atasan gagal 422 di produksi: `EMAIL_FROM` Vercel produksi sudah di-update ke `info@notif.machapp.web.id` + redeploy (422 sudah teratasi) — **masih diblokir: setup/verifikasi domain Resend (SPF + DKIM + status Verified) oleh user**
+- [ ] Setup/verifikasi domain Resend `notif.machapp.web.id` di dashboard Resend (SPF, DKIM, status Verified) — **butuh aksi user**
 - [x] Polish UI sesuai `DESIGN.md` di halaman dashboard atasan (4 metric card + section problem/laporan) & halaman baru teams/laporan/request
 - [ ] Tambah empty state & error state yang informatif (sudah ada `EmptyState`/`Loading`/`err`; audit ulang per halaman tersisa)
 
