@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), dan polish dashboard 4 metric card sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**. Notif Telegram laporan sudah terkirim ke group (dikonfirmasi user). Email laporan ke atasan sempat gagal 422 karena `EMAIL_FROM` produksi lama; sudah di-update ke `info@notif.machapp.web.id` + redeploy, menunggu verifikasi. E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -48,7 +48,7 @@
 - [x] Uji `POST /api/tasks` dari dashboard atasan (E2E ✅)
 - [x] Uji `GET /api/tasks?userId=` di dashboard technician (E2E ✅)
 - [x] Wiring notif Telegram otomatis saat task dibuat (via `notifyTelegram`, route `tasks`)
-- [ ] Validasi notif Telegram benar-benar terkirim ke chat/group asli (butuh bot asli + `notification_channels` terisi) — **butuh aksi user**
+- [x] Validasi notif Telegram benar-benar terkirim ke chat/group asli (bot asli + `notification_channels` terisi) — terkonfirmasi user notif laporan masuk ke group
 
 ## Sprint 4 — Completion report & approval poin
 
@@ -74,6 +74,7 @@
 - [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
 - [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <info@notif.machapp.web.id>` (dikonfirmasi user; reply-to ditambahkan ke notifikasi task/report/approval)
 - [x] Tes spam kantor: kirim email test ke `dedy_supriyanto@taci.toyota-industries.com` (Resend HTTP 200) — menunggu konfirmasi user apakah masuk inbox atau spam
+- [ ] Fix email laporan ke atasan gagal 422 di produksi: `EMAIL_FROM` Vercel produksi sudah di-update ke `info@notif.machapp.web.id` + redeploy — menunggu verifikasi ulang setelah deploy selesai
 - [x] Polish UI sesuai `DESIGN.md` di halaman dashboard atasan (4 metric card + section problem/laporan) & halaman baru teams/laporan/request
 - [ ] Tambah empty state & error state yang informatif (sudah ada `EmptyState`/`Loading`/`err`; audit ulang per halaman tersisa)
 
