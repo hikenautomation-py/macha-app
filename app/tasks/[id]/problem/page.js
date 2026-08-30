@@ -8,6 +8,7 @@ import PhoneFrame from '@/components/PhoneFrame';
 import TaskContextCard from '@/components/TaskContextCard';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { IconBellRinging } from '@tabler/icons-react';
 
 const URGENSI = [
   { key: 'bisa_nunggu', label: 'Bisa nunggu', cls: 'picked-low' },
@@ -121,7 +122,7 @@ export default function ProblemTask() {
               </button>
 
               <div className="stamp-note coral">
-                <span aria-hidden="true">🔔</span>
+                <IconBellRinging size={16} aria-hidden="true" />
                 <span>Atasan langsung dapat notifikasi begitu ini terkirim, nggak perlu nunggu antrian biasa.</span>
               </div>
             </form>

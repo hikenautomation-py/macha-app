@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { IconTool, IconCheck } from '@tabler/icons-react';
 
 export default function LaporanPage() {
   const router = useRouter();
@@ -39,13 +40,13 @@ export default function LaporanPage() {
         <div className="phone-inner">
           <button className="back-btn" onClick={() => router.push('/')}>← Beranda</button>
           <div className="brand" style={{ fontSize: 18, marginBottom: 8 }}>
-            <span aria-hidden="true">🔧</span> Macha Task
+            <IconTool size={18} aria-hidden="true" /> Macha Task
           </div>
           <p className="muted" style={{ marginBottom: 16 }}>Laporan masalah umum untuk tim Production Engineering</p>
 
           {done ? (
             <div className="stamp-note">
-              <span aria-hidden="true">✅</span>
+              <IconCheck size={16} aria-hidden="true" />
               <span>Laporan kamu sudah diterima. Tim engineering akan meninjaunya.</span>
             </div>
           ) : (

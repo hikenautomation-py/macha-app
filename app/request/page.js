@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { IconTool, IconCheck } from '@tabler/icons-react';
 
 export default function RequestPage() {
   const router = useRouter();
@@ -39,13 +40,13 @@ export default function RequestPage() {
         <div className="phone-inner">
           <button className="back-btn" onClick={() => router.push('/')}>← Beranda</button>
           <div className="brand" style={{ fontSize: 18, marginBottom: 8 }}>
-            <span aria-hidden="true">🔧</span> Macha Task
+            <IconTool size={18} aria-hidden="true" /> Macha Task
           </div>
           <p className="muted" style={{ marginBottom: 16 }}>Ajukan permintaan improvement ke tim Production Engineering</p>
 
           {done ? (
             <div className="stamp-note">
-              <span aria-hidden="true">✅</span>
+              <IconCheck size={16} aria-hidden="true" />
               <span>Permintaan kamu sudah diterima. Terima kasih atas usulannya!</span>
             </div>
           ) : (

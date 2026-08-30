@@ -9,6 +9,7 @@ import { isAtasan } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { IconCheck, IconAlertTriangle, IconBulb, IconHandGrab } from '@tabler/icons-react';
 
 const FILTERS = [
   { key: 'all', label: 'Semua' },
@@ -87,7 +88,7 @@ export default function Tech() {
       <AppBar actions={<button className="link-btn" onClick={() => signOut()}>Keluar</button>} />
 
       <div className="greet-blob">
-        <h2>Halo, {profile?.nama || 'Tech'} 👋</h2>
+        <h2>Halo, {profile?.nama || 'Tech'}</h2>
         <p>Poin bulan ini: <b className="mono">{poin.totalPoin}</b> · {poin.jumlahTaskSelesai} task selesai</p>
       </div>
 
@@ -111,17 +112,17 @@ export default function Tech() {
           {loadingData ? (
             <Loading />
           ) : visible.length === 0 ? (
-            <EmptyState>Belum ada task. Santai dulu, atau tanya atasan kamu. 🙂</EmptyState>
+            <EmptyState>Belum ada task. Santai dulu, atau tanya atasan kamu.</EmptyState>
           ) : (
             visible.map((t) => (
               <TicketCard key={t.taskId} task={t}>
                 {ACTIONABLE.includes(t.status) ? (
                   <div className="row" style={{ marginTop: 12 }}>
                     <button className="btn btn-primary" onClick={() => router.push(`/tasks/${t.taskId}/complete`)}>
-                      <span aria-hidden="true">✔</span> Selesaikan
+                      <IconCheck size={16} aria-hidden="true" /> Selesaikan
                     </button>
                     <button className="btn btn-danger-outline" onClick={() => router.push(`/tasks/${t.taskId}/problem`)}>
-                      <span aria-hidden="true">🚨</span> Lapor masalah
+                      <IconAlertTriangle size={16} aria-hidden="true" /> Lapor masalah
                     </button>
                   </div>
                 ) : null}
@@ -139,7 +140,13 @@ export default function Tech() {
           ) : (
             externals.map((e) => (
               <div className="card" key={e.id} style={{ marginBottom: 12 }}>
-                <div className="t-title">{e.type === 'problem' ? '🚨 Laporan masalah' : '💡 Permintaan improvement'}</div>
+                <div className="t-title">
+                  {e.type === 'problem' ? (
+                    <><IconAlertTriangle size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Laporan masalah</>
+                  ) : (
+                    <><IconBulb size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Permintaan improvement</>
+                  )}
+                </div>
                 <div className="t-meta" style={{ marginTop: 4 }}>
                   {e.nama}{e.npk ? ` · NPK ${e.npk}` : ''}
                 </div>
@@ -150,7 +157,9 @@ export default function Tech() {
                   disabled={busyId === e.id}
                   onClick={() => pickUp(e)}
                 >
-                  {busyId === e.id ? 'Mengambil…' : '🙋 Pick up'}
+                  {busyId === e.id ? 'Mengambil…' : (
+                    <><IconHandGrab size={16} aria-hidden="true" /> Pick up</>
+                  )}
                 </button>
               </div>
             ))

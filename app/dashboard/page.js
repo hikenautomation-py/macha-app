@@ -8,6 +8,7 @@ import { isAtasan, URGENCY_LABEL } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { IconCheck, IconArrowBackUp, IconAlertTriangle, IconBulb } from '@tabler/icons-react';
 
 export default function Dashboard() {
   const { session, profile, loading, signOut } = useAuth();
@@ -191,7 +192,7 @@ export default function Dashboard() {
       />
 
       <div className="greet-blob">
-        <h2>Halo, {profile?.nama || 'Atasan'} 👋</h2>
+        <h2>Halo, {profile?.nama || 'Atasan'}</h2>
         <p>Ini antrean approval & performa tim kamu.</p>
       </div>
 
@@ -220,7 +221,7 @@ export default function Dashboard() {
       {loadingData ? (
         <Loading />
       ) : pending.length === 0 ? (
-        <EmptyState>Belum ada task yang menunggu approval. ✨</EmptyState>
+        <EmptyState>Belum ada task yang menunggu approval.</EmptyState>
       ) : (
         pending.map((t) => (
           <div className="card" key={t.taskId} style={{ marginBottom: 12 }}>
@@ -255,10 +256,10 @@ export default function Dashboard() {
             ) : (
               <div className="row" style={{ marginTop: 14 }}>
                 <button className="btn btn-primary" disabled={busyId === t.taskId} onClick={() => approve(t)}>
-                  <span aria-hidden="true">✅</span> Setujui
+                  <IconCheck size={16} aria-hidden="true" /> Setujui
                 </button>
                 <button className="btn btn-danger-outline" disabled={busyId === t.taskId} onClick={() => openRevisi(t)}>
-                  <span aria-hidden="true">↩️</span> Revisi
+                  <IconArrowBackUp size={16} aria-hidden="true" /> Revisi
                 </button>
               </div>
             )}
@@ -309,7 +310,13 @@ export default function Dashboard() {
       ) : (
         externals.map((e) => (
           <div className="card" key={e.id} style={{ marginBottom: 12 }}>
-            <div className="t-title">{e.type === 'problem' ? '🚨 Laporan masalah' : '💡 Permintaan improvement'}</div>
+            <div className="t-title">
+                  {e.type === 'problem' ? (
+                    <><IconAlertTriangle size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Laporan masalah</>
+                  ) : (
+                    <><IconBulb size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Permintaan improvement</>
+                  )}
+                </div>
             <div className="t-meta" style={{ marginTop: 4 }}>
               {e.nama}{e.npk ? ` · NPK ${e.npk}` : ''}
             </div>
@@ -354,7 +361,12 @@ export default function Dashboard() {
           >
             <h3 id="assign-title">Tugaskan ke bawahan</h3>
             <p className="muted" style={{ marginTop: 8 }}>
-              {assignFor.type === 'problem' ? '🚨 Laporan masalah' : '💡 Permintaan improvement'} dari {assignFor.nama}
+              {assignFor.type === 'problem' ? (
+                <><IconAlertTriangle size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Laporan masalah</>
+              ) : (
+                <><IconBulb size={14} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Permintaan improvement</>
+              )}{' '}
+              dari {assignFor.nama}
             </p>
             <label className="f-label" htmlFor="assign-target" style={{ marginTop: 16 }}>Pilih bawahan</label>
             <select

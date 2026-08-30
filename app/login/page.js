@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan, GOLONGAN_PELAKSANA_MAX, PELAKSANA_TITLE_OPTIONS } from '@/lib/constants';
+import { IconTool, IconBulb } from '@tabler/icons-react';
 
 export default function Login() {
   const { session, profile, loading, signIn } = useAuth();
@@ -61,7 +62,7 @@ export default function Login() {
     <div className="narrow">
       <div className="panel">
               <div className="brand" style={{ fontSize: 20, marginBottom: 6 }}>
-                <span aria-hidden="true">🔧</span> Macha Task
+                <IconTool size={18} aria-hidden="true" /> Macha Task
               </div>
               <p className="muted" style={{ marginBottom: 18 }}>
                 Task tracker tim Production Engineering
@@ -124,7 +125,7 @@ export default function Login() {
           </form>
 
           <div className="stamp-note">
-            <span>💡</span>
+            <IconBulb size={16} aria-hidden="true" />
             <span>Belum punya akun? Pilih tab <b>Daftar</b>. Sudah punya akun? Ketik <b>/start</b> di bot Telegram dan masukkan NPK untuk menautkan notifikasi ke Telegram.</span>
           </div>
         </div>

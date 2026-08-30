@@ -8,6 +8,7 @@ import PhoneFrame from '@/components/PhoneFrame';
 import TaskContextCard from '@/components/TaskContextCard';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { IconSparkles } from '@tabler/icons-react';
 
 export default function CompleteTask() {
   const { session, profile, loading } = useAuth();
@@ -102,7 +103,7 @@ export default function CompleteTask() {
               </button>
 
               <div className="stamp-note">
-                <span aria-hidden="true">✨</span>
+                <IconSparkles size={16} aria-hidden="true" />
                 <span>Setelah disetujui atasan, poin otomatis nambah ke skor kamu bulan ini.</span>
               </div>
             </form>
