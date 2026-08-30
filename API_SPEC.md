@@ -137,6 +137,27 @@ Response:
     { "userId": "u2", "nama": "Sari Dewi", "golongan": 1, "title": "Operator", "poin": 62 }
   ]
 }
+5a1. Keamanan P0 — pendaftaran & penetapan role
+
+`POST /signup` (self-service publik) **tidak menerima klaim golongan 5-7** maupun jabatan
+SPV/Assistant Manager/Section Manager — balasan `400 INVALID_ARGUMENT`. Pendaftar hanya
+bisa memilih golongan 1-4 (`GOLONGAN_PELAKSANA_MAX`) dan jabatan pelaksana
+(Intern/Operator/Technician).
+
+`PATCH /users/{id}/role`
+Ubah golongan/jabatan anggota — **hanya atasan terverifikasi** (golongan >= 5, title SPV
+ke atas); `id` harus bawahan di subtree penyetuju dan golongan target harus **lebih rendah**
+dari golongan penyetuju (monotonic, tidak bisa menetapkan level sendiri).
+
+Request:
+
+{ "golongan": 6, "title": "Assistant Manager" } // minimal satu field diisi
+
+Response: { "success": true, "data": { "id": "user_id", "golongan": 6, "title": "Assistant Manager" } }
+
+Klaim/approval lewat Telegram (step_golongan & tombol Setujui) mengikuti batas yang sama:
+golongan final dipatok ke kapasitas si penyetuju (maks = level-1; penyetuju tak dikenal = 4).
+
 5a. Teams & organisasi
 GET /teams
 Daftar team yang dikelola (lead_id / created_by = diri sendiri), disertai member.

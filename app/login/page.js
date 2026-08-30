@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
-import { isAtasan, TITLE_OPTIONS } from '@/lib/constants';
+import { isAtasan, GOLONGAN_PELAKSANA_MAX, PELAKSANA_TITLE_OPTIONS } from '@/lib/constants';
 
 export default function Login() {
   const { session, profile, loading, signIn } = useAuth();
@@ -99,14 +99,17 @@ export default function Login() {
 
                 <label className="f-label" style={{ marginTop: 12 }}>Golongan</label>
                 <select className="f-input" value={form.golongan} onChange={set('golongan')}>
-                  {[1, 2, 3, 4, 5, 6, 7].map((g) => (
+                  {Array.from({ length: GOLONGAN_PELAKSANA_MAX }, (_, i) => i + 1).map((g) => (
                     <option key={g} value={String(g)}>Golongan {g}</option>
                   ))}
                 </select>
+                <p className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+                  Golongan 5–7 serta jabatan SPV/ASM/SM ditetapkan oleh atasan terverifikasi setelah pendaftaran.
+                </p>
 
-                <label className="f-label" style={{ marginTop: 12 }}>Title / Jabatan</label>
+                <label className="f-label" style={{ marginTop: 12 }}>Jabatan</label>
                 <select className="f-input" value={form.title} onChange={set('title')}>
-                  {TITLE_OPTIONS.map((t) => (
+                  {PELAKSANA_TITLE_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>

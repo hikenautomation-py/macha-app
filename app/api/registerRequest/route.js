@@ -9,13 +9,21 @@ export async function POST(req) {
   if (!chatId || !nama || !npk) {
     return jsonError(400, 'INVALID_ARGUMENT', 'chatId, nama, dan npk wajib diisi');
   }
+  // Klaim golongan memang 1-7 (boleh setinggi apa pun), tetapi itu hanya *klaim* —
+  // golongan final ditetapkan penyetuju di approve.
+  const claimG = golonganKlaim === null || golonganKlaim === undefined
+    ? 1
+    : Number(golonganKlaim);
+  if (!Number.isInteger(claimG) || claimG < 1 || claimG > 7) {
+    return jsonError(400, 'INVALID_ARGUMENT', 'golonganKlaim harus angka 1-7');
+  }
 
   const admin = createAdminClient();
   const { error } = await admin.from('pending_registrations').upsert({
     chat_id: String(chatId),
     nama,
     npk,
-    golongan: Number(golonganKlaim) || 1,
+    golongan: claimG,
     title: title || null,
     email: email || null,
     status: 'pending',

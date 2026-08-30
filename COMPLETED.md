@@ -182,6 +182,36 @@ langsung menangani laporan. Sekarang ditambahkan dua jalur baru di web:
 - [ ] E2E web pick up + assign — **butuh deploy ke produksi + uji user asli**
 
 ---
+
+## 2026-08-30 — P0 keamanan: hentikan privilege-escalation pendaftaran web
+
+### Masalah
+- [x] Sebelumnya `POST /api/signup` (self-service, publik) menerima klaim golongan 1-7 + jabatan
+  bebas tanpa validasi/approval → siapa pun bisa daftar golongan 7 (Section Manager) dan langsung
+  punya hak atasan (buat/approve task, assign laporan, kelola tim).
+
+### Perbaikan kode
+- [x] `lib/constants.js` — konstanta `GOLONGAN_PELAKSANA_MAX = 4` + `PELAKSANA_TITLE_OPTIONS`.
+- [x] `app/api/signup/route.js` — tolak golongan > `GOLONGAN_PELAKSANA_MAX` & jabatan SPV/ASM/SM
+  (`400 INVALID_ARGUMENT`); nilai golongan ter-snapshot ke `parsedG ?? 1`.
+- [x] `app/api/users/[id]/role/route.js` **(baru)** — `PATCH`: atasan terverifikasi (>= 5) menetapkan
+  golongan/jabatan bawahan; target wajib di subtree; golongan target < golongan penyetuju; validasi
+  range 1-7 + konsistensi golongan↔jabatan; sinkron `user_metadata` auth (best effort).
+- [x] Guard Telegram:
+  - `approveRegistration` di `app/api/telegramWebhook/route.js` — golongan final dipatok kapasitas
+    penyetuju (maks = level penyetuju - 1; penyetuju non-atasan ditolak; penyetuju tak dikenal = 4);
+    notifikasi ke user kalau klaim diturunkan.
+  - `app/api/registerApprove/route.js` — guard serupa via `approvedBy`.
+  - `app/api/registerRequest/route.js` — validasi `golonganKlaim` 1-7 (tetap *klaim*, bukan final).
+  - `step_golongan` bot — peringatan bahwa golongan >= 5 butuh verifikasi admin.
+- [x] UI `app/login/page.js` — pilihan golongan 1-4, jabatan pelaksana saja (+ hint).
+
+### Catatan
+- [ ] Golongan 7 (SM paling atas) tetap dibuat secara manual via admin/seed Supabase — bukan lewat
+  self-service; kemudian ia menetapkan bawahannya via `PATCH /api/users/{id}/role`.
+- [ ] Rotasi kredensial Vercel/Resend (`.commandcode/` + `test-api.cjs`) — **aksi user**.
+
+---
 - Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)
 - Verifikasi domain pengirim Resend (user-dependent — DNS SPF/DKIM `notif.machapp.web.id`)
 - Connect Git auto-deploy Vercel (opsional)

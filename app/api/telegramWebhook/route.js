@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram, setBotCommands } from '@/lib/telegram';
 import { emailRegistrationApproved, emailExternalReport, emailTaskAssigned } from '@/lib/email';
-import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL } from '@/lib/constants';
+import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL, ATASAN_TITLES, golonganLabel } from '@/lib/constants';
 import { externalRequestText, broadcastExternalRequest } from '@/lib/external';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -628,6 +628,12 @@ async function handleRegistrationStep(admin, pending, chatId, text) {
       await sendTelegramMessage(chatId, 'Masukkan golongan berupa angka 1-7 ya.');
       return;
     }
+    if (g >= 5) {
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ Golongan ${g} (level atasan) butuh <b>verifikasi admin</b> — golongan final ditetapkan oleh SPV/ASM/SM penyetuju, bukan berdasarkan klaimmu.`
+      );
+    }
     await admin.from('pending_registrations').update({ golongan: g, status: 'step_title' }).eq('chat_id', String(chatId));
 
     await sendTelegramMessage(
@@ -705,13 +711,39 @@ async function approveRegistration(admin, chatId, cq, messageId) {
     return;
   }
 
+  // P0 guard: golongan final dibatasi kapasitas si penyetuju. Penyetuju yang belum
+  // punya akun web (tidak dikenal) dipatok maks. pelaksana (golongan 4); atasan
+  // terverifikasi (>= 5) dapat menetapkan maks. level-1-nya; non-atasan ditolak.
+  let maxG = 4;
+  const approverChat = String(cq?.from?.id || '');
+  if (approverChat) {
+    const { data: approver } = await admin
+      .from('users')
+      .select('golongan')
+      .eq('telegram_chat_id', approverChat)
+      .maybeSingle();
+    if (approver && Number(approver.golongan) >= 5) {
+      maxG = Number(approver.golongan) - 1;
+    } else if (approver) {
+      await sendTelegramMessage(cq.message?.chat?.id, '⛔ Hanya atasan (SPV ke atas) yang boleh menyetujui pendaftaran.');
+      return;
+    }
+  }
+
+  const klaimG = Math.max(1, Number(pending.golongan) || 1);
+  const finalG = Math.min(klaimG, maxG);
+  const finalTitle =
+    finalG >= 5
+      ? (ATASAN_TITLES.includes(pending.title) ? pending.title : golonganLabel(finalG))
+      : (pending.title && !ATASAN_TITLES.includes(pending.title) ? pending.title : golonganLabel(finalG));
+
   const { data: user, error } = await admin
     .from('users')
     .insert({
       nama: pending.nama,
       npk: pending.npk,
-      golongan: pending.golongan,
-      title: pending.title,
+      golongan: finalG,
+      title: finalTitle,
       email: pending.email || null,
       telegram_chat_id: String(chatId),
     })
@@ -727,7 +759,10 @@ async function approveRegistration(admin, chatId, cq, messageId) {
   if (pending.email) {
     await emailRegistrationApproved(pending.email, { nama: pending.nama, npk: pending.npk });
   }
-  await sendTelegramMessage(chatId, `🎉 Selamat, ${pending.nama}! Akun kamu sudah aktif. Ketik /start untuk mulai.`);
+  const catatan = klaimG !== finalG
+    ? ` — klaim ${klaimG} disesuaikan ke golongan ${finalG} oleh penyetuju.`
+    : ` (golongan ${finalG})`;
+  await sendTelegramMessage(chatId, `🎉 Selamat, ${pending.nama}! Akun kamu sudah aktif${catatan} Ketik /start untuk mulai.`);
 
   if (messageId) {
     await editMessageText(cq.message?.chat?.id, messageId, `✅ <b>${pending.nama}</b> (NPK ${pending.npk}) sudah disetujui.`);

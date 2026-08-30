@@ -9,6 +9,12 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 > **STATUS UPDATE (2026-08-28)** — Migrasi `0009`/`0010`/`0011` sudah di-apply ke Supabase produksi. Pick up laporan/request sudah bisa lewat Telegram (inline button); **pick up / assign dari web** (UI siap di `/tech` & `/dashboard`) kini lengkap — endpoint `POST /api/external/[id]/pickup` & `/assign` diimplementasi penuh via helper `createTaskFromExternal` di `lib/external.js` (lihat update 2026-08-30). Email laporan ke atasan masih terblokir DNS SPF `notif.machapp.web.id` (butuh setup/verifikasi domain Resend oleh user).
 > **STATUS UPDATE (2026-08-30)** — **Pick up / assign laporan umum dari web selesai**: endpoint `POST /api/external/[id]/pickup` (semua user login) & `POST /api/external/[id]/assign` (atasan golongan ≥ 5; `assignedTo` harus di subtree bawahan) — keduanya via `lib/external.js` → `createTaskFromExternal` (guard anti double-pick + notif Telegram/email). Dokumentasi disinkron dengan stack aktual; `npm run lint` ✅ dan `npm run build` ✅ (2026-08-30).
 >
+> **STATUS UPDATE (2026-08-30, keamanan P0)** — **Self-declare level atasan diblokir**: `/api/signup`
+> menolak klaim golongan ≥ 5 & jabatan SPV/ASM/SM (maks pelaksana `GOLONGAN_PELAKSANA_MAX = 4`);
+> penetapan ke level atasan kini lewat endpoint baru `PATCH /api/users/{id}/role` (atasan terverifikasi,
+> target di subtree, golongan < penyetuju). Alur Telegram ikut diperketat (`approveRegistration`
+> memasar golongan final ke kapasitas penyetuju, klaim ≥ 5 perlu verifikasi). Lint & build ✅ (2026-08-30).
+>
 > **Progress per sprint:** Sprint 0–5 ✅ **SELESAI** (Sprint 2 & 5 kini termasuk teams/hierarki, laporan umum `/laporan` + `/request`, pick up Telegram, dan polish dashboard) · Sprint 6 🔄 **SEBAGIAN** (email + domain pengirim + penautan selesai; tes spam kantor menunggu verifikasi DNS Resend) · Sprint 7–8 ⬜ **BELUM MULAI**.
 > Rincian per-item ada di `COMPLETED.md` (selesai) dan `TODOS.md` (sisa). Checkbox di bawah adalah roadmap historis dan tidak lagi mencerminkan stack/status aktual.
 

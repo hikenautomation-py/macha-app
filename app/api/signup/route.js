@@ -1,9 +1,10 @@
 import { jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
+import { ATASAN_TITLES, GOLONGAN_PELAKSANA_MAX } from '@/lib/constants';
 
 // POST /api/signup — daftar akun web via dashboard.
 // Dilakukan server-side dengan service role dan langsung menandai email sebagai
-// TERCANFIRM (email_confirm: true), karena mayoritas pelaksana (golongan 1-5)
+// TERCANFIRM (email_confirm: true), karena mayoritas pelaksana (golongan 1-4)
 // internetnya diblokir IT sehingga tidak bisa meng-klik link konfirmasi email.
 // Tanpa ini mereka tidak akan pernah bisa login. Email konfirmasi (yang
 // redirect-nya rawan http://localhost) juga tidak dikirim oleh admin.createUser.
@@ -21,6 +22,20 @@ export async function POST(req) {
     return jsonError(400, 'INVALID_ARGUMENT', 'Nama wajib diisi.');
   }
 
+  // Keamanan (P0): pendaftaran web self-service — level atasan tidak bisa diklaim
+  // sendiri. Maksimal golongan pelaksana GOLONGAN_PELAKSANA_MAX; golongan 5-7
+  // & jabatan SPV/ASM/SM ditetapkan lewat PATCH /api/users/{id}/role oleh atasan.
+  const parsedG = golongan === null || golongan === undefined
+    ? null
+    : Number(golongan);
+  if (parsedG !== null && (!Number.isInteger(parsedG) || parsedG < 1 || parsedG > GOLONGAN_PELAKSANA_MAX)) {
+    return jsonError(400, 'INVALID_ARGUMENT', `Golongan saat pendaftaran hanya 1-${GOLONGAN_PELAKSANA_MAX} (pelaksana). Golongan 5-7 (SPV/ASM/SM) ditetapkan oleh atasan terverifikasi setelah daftar.`);
+  }
+  const titleClean = String(title || '').trim();
+  if (ATASAN_TITLES.includes(titleClean)) {
+    return jsonError(400, 'INVALID_ARGUMENT', `Jabatan ${titleClean} tidak bisa diklaim sendiri saat pendaftaran — ditetapkan oleh atasan terverifikasi.`);
+  }
+
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({
     email: String(email).trim().toLowerCase(),
@@ -29,8 +44,8 @@ export async function POST(req) {
     user_metadata: {
       nama: String(nama).trim(),
       npk: String(npk || '').trim(),
-      golongan: Number(golongan) || 1,
-      title: String(title || '').trim() || null,
+      golongan: parsedG ?? 1,
+      title: titleClean || null,
     },
   });
 
@@ -49,8 +64,8 @@ export async function POST(req) {
     email: data.user.email || null,
     nama: String(nama).trim(),
     npk: String(npk || '').trim() || null,
-    golongan: Number(golongan) || 1,
-    title: String(title || '').trim() || null,
+    golongan: parsedG ?? 1,
+    title: titleClean || null,
   };
   const { error: upErr } = await admin.from('users').upsert(profile, { onConflict: 'id' });
   if (upErr) {
