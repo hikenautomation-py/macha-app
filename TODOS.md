@@ -77,8 +77,9 @@
 - [x] Review keamanan: `points_history` hanya punya policy SELECT (tidak ada write langsung dari client)
 - [x] Domain pengirim Resend `notif.machapp.web.id` + `EMAIL_FROM=Macha App <info@notif.machapp.web.id>` (dikonfirmasi user; reply-to ditambahkan ke notifikasi task/report/approval)
 - [x] Tes spam kantor: kirim email test ke `dedy_supriyanto@taci.toyota-industries.com` (Resend HTTP 200) — email BELUM masuk inbox; penyebab DNS SPF `notif.machapp.web.id` belum ada/terverifikasi
-- [ ] Fix email laporan ke atasan gagal 422 di produksi: `EMAIL_FROM` Vercel produksi sudah di-update ke `info@notif.machapp.web.id` + redeploy (422 sudah teratasi) — **masih diblokir: setup/verifikasi domain Resend (SPF + DKIM + status Verified) oleh user**
-- [ ] Setup/verifikasi domain Resend `notif.machapp.web.id` di dashboard Resend (SPF, DKIM, status Verified) — **butuh aksi user**
+- [x] Tes ulang 2026-08-30: email test ke-2 ke `dedy_supriyanto@taci.toyota-industries.com` terkirim (Resend id `4e135f8c-b289-43b1-92a7-a834db80f183`). Cek DNS publik (dns.google): **DKIM `resend._domainkey.notif.machapp.web.id` ADA, tapi SPF (TXT pada `notif.machapp.web.id`) & MX (bounce/Return-Path) BELUM ADA** → verifikasi domain Resend masih belum lengkap; email lolos dengan autentikasi parsial → gateway korporat menerima lambat (celah "baru masuk setelah beberapa lama"). Catatan: API key Resend saat ini **send-only (restricted)** → status delivery/bounce tidak bisa dicek via API.
+- [ ] Fix email laporan ke atasan gagal 422 di produksi: `EMAIL_FROM` Vercel produksi sudah di-update ke `info@notif.machapp.web.id` + redeploy (422 sudah teratasi) — **masih diblokir: setup/verifikasi domain Resend (SPF + DKIM + MX + status Verified) oleh user**
+- [ ] Setup/verifikasi domain Resend `notif.machapp.web.id` di dashboard Resend — **butuh aksi user di Domainesia**: tambah record TXT SPF + MX (nilai persis ambil dari dashboard Resend → tab Domains), cek status jadi Verified, lalu `sendEmail` test ulang & cek inbox `dedy_supriyanto@taci.toyota-industries.com`
 - [x] Polish UI sesuai `DESIGN.md` di halaman dashboard atasan (4 metric card + section problem/laporan) & halaman baru teams/laporan/request
 - [ ] Tambah empty state & error state yang informatif (sudah ada `EmptyState`/`Loading`/`err`; audit ulang per halaman tersisa)
 
