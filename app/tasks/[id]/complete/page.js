@@ -8,7 +8,7 @@ import PhoneFrame from '@/components/PhoneFrame';
 import TaskContextCard from '@/components/TaskContextCard';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
-import { IconSparkles } from '@tabler/icons-react';
+import { IconSparkles, IconArrowLeft } from '@tabler/icons-react';
 
 export default function CompleteTask() {
   const { session, profile, loading } = useAuth();
@@ -68,7 +68,7 @@ export default function CompleteTask() {
   return (
     <div className="container">
       <PhoneFrame>
-        <button className="back-btn" onClick={() => router.push('/tech')}>← Kembali</button>
+        <button className="back-btn" onClick={() => router.push('/tech')}><IconArrowLeft size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Kembali</button>
 
         {loadingTask ? (
           <Loading label="Memuat task…" />

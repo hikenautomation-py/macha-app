@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
-import { IconTool, IconCheck } from '@tabler/icons-react';
+import { IconTool, IconCheck, IconArrowLeft } from '@tabler/icons-react';
 
 export default function LaporanPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function LaporanPage() {
     <div className="narrow">
       <div className="phone">
         <div className="phone-inner">
-          <button className="back-btn" onClick={() => router.push('/')}>← Beranda</button>
+          <button className="back-btn" onClick={() => router.push('/')}><IconArrowLeft size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Beranda</button>
           <div className="brand" style={{ fontSize: 18, marginBottom: 8 }}>
             <IconTool size={18} aria-hidden="true" /> Macha Task
           </div>

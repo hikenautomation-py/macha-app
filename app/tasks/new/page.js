@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { IconArrowLeft } from '@tabler/icons-react';
 import { isAtasan } from '@/lib/constants';
 
 export default function NewTask() {
@@ -74,7 +75,7 @@ export default function NewTask() {
 
   return (
     <div className="container">
-      <button className="back-btn" onClick={() => router.push('/dashboard')}>← Kembali</button>
+      <button className="back-btn" onClick={() => router.push('/dashboard')}><IconArrowLeft size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Kembali</button>
       <h2 style={{ marginBottom: 16 }}>Buat task baru</h2>
 
       <form className="card" onSubmit={submit}>

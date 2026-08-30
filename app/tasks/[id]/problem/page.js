@@ -8,7 +8,7 @@ import PhoneFrame from '@/components/PhoneFrame';
 import TaskContextCard from '@/components/TaskContextCard';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
-import { IconBellRinging } from '@tabler/icons-react';
+import { IconBellRinging, IconArrowLeft } from '@tabler/icons-react';
 
 const URGENSI = [
   { key: 'bisa_nunggu', label: 'Bisa nunggu', cls: 'picked-low' },
@@ -74,7 +74,7 @@ export default function ProblemTask() {
   return (
     <div className="container">
       <PhoneFrame>
-        <button className="back-btn" onClick={() => router.push('/tech')}>← Kembali</button>
+        <button className="back-btn" onClick={() => router.push('/tech')}><IconArrowLeft size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Kembali</button>
 
         {loadingTask ? (
           <Loading label="Memuat task…" />

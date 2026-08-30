@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
+import { IconArrowLeft } from '@tabler/icons-react';
 import { isAtasan } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
@@ -104,7 +105,7 @@ export default function Teams() {
       <AppBar
         actions={
           <>
-            <button className="btn btn-primary" onClick={() => router.push('/dashboard')}>← Dashboard</button>
+            <button className="btn btn-primary" onClick={() => router.push('/dashboard')}><IconArrowLeft size={16} style={{ verticalAlign: '-2px' }} aria-hidden="true" /> Dashboard</button>
             <button className="link-btn" onClick={() => signOut()}>Keluar</button>
           </>
         }
