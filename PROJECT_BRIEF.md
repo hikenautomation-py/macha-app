@@ -87,13 +87,13 @@ User baru kirim `/start` ke bot → isi NPK dulu → cocokkan ke `users` (penaut
 SM/ASM/SPV membuat `teams` (lead + anggota) lewat halaman `/teams`. Saat anggota ditambahkan, `users.atasan_id` di-set ke lead team. Visibilitas task & statistik mengikuti subtree `atasan_id` secara rekursif; atasan hanya bisa menugaskan/melihat bawahan, tidak bisa melihat ke atas.
 
 ### Dashboard atasan
-Ringkasan metrik (task aktif, menunggu approval, problem report, poin tim bulan ini), daftar antrian approval, section problem report, section laporan umum & request, tabel statistik kinerja tim per individu. Tombol "Buat task baru" dan "Kelola tim".
+Ringkasan metrik (task aktif, menunggu approval, problem report, poin tim bulan ini), daftar antrian approval, section problem report, section laporan umum & request, tabel statistik kinerja tim per individu. Tombol "Buat task baru" dan "Kelola tim". **Pada laporan/request terbuka, atasan bisa klik "Assign to" — modal pilih bawahan untuk membuat task baru dari laporan (helper `createTaskFromExternal` di `lib/external.js`)**.
 
 ### Laporan umum & request (lintas seksi)
-Perintah bot `/laporan` (masalah umum) dan `/request` (improvement), plus form web publik, menerima laporan dari seksi lain tanpa wajib punya akun (cukup nama + NPK). Data masuk ke `external_requests` dan ditindaklanjuti engineering.
+Perintah bot `/laporan` (masalah umum) dan `/request` (improvement), plus form web publik, menerima laporan dari seksi lain tanpa wajib punya akun (cukup nama + NPK). Data masuk ke `external_requests` dan ditindaklanjuti engineering. **Penanganan dari web: teknisi/operator klik "🙋 Pick up" untuk mengambil laporan (assigned_to = diri), atasan klik "Resolve" untuk menutup tanpa task atau "Assign to" untuk delegasi ke bawahan.**
 
 ### Dashboard technician/operator
-Sapaan personal, daftar task hari ini dengan status berwarna, dua tombol aksi utama (Lapor selesai / Lapor masalah), ringkasan poin bulan berjalan di bagian bawah (bukan fokus utama).
+Sapaan personal, daftar task hari ini dengan status berwarna, dua tombol aksi utama (Lapor selesai / Lapor masalah), ringkasan poin bulan berjalan di bagian bawah (bukan fokus utama). **Sidebar tambahan "Laporan umum & request" menampilkan laporan terbuka dengan tombol "🙋 Pick up" — klik untuk mengambil laporan dan langsung dibuatkan task untuk dirinya sendiri.**
 
 ### Form lapor selesai (completion report)
 Field: catatan progress (wajib), lampiran foto (opsional). Submit mengubah status task menjadi `report_submitted`, menunggu approval atasan. Setelah approve, poin otomatis masuk ke `points_history`.
@@ -140,13 +140,15 @@ Aplikasi di-hosting sepenuhnya di layanan cloud (Supabase + Vercel) untuk menghi
 - Semua outbound call (Telegram API, email service, service role) berasal dari server, tidak dari device pengguna, sehingga tidak terikat batasan internet kantor
 
 **Database — Supabase PostgreSQL**
-- `users` — profil, golongan, `atasan_id`, `telegram_chat_id`
+- `users` — profil, golongan, `atasan_id`, `telegram_chat_id`, `title`, `email`
 - `pending_registrations` — user yang menunggu approval admin telegram
 - `teams` + `team_members` — organisasi team (lead + anggota)
 - `tasks` — task individual dengan status, bobot poin, deadline
 - `task_reports` — completion report per task
 - `task_problems` — problem report per task
-- `external_requests` — laporan umum & request lintas seksi
+- `external_requests` — laporan umum & request lintas seksi (status `open`/`picked`/`rejected`/`resolved`; kolom `picked_by`, `task_id`, `rejected_by`)
+- `telegram_external_convos` — state percakapan multi-step `/laporan` & `/request`
+- `notification_channels` — group/channel Telegram yang ikut menerima broadcast
 - `points_history` — log poin, query lintas task
 
 **Autentikasi**

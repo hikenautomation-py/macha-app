@@ -234,8 +234,8 @@ Poin penting: penulisan pada points_history tidak boleh langsung dari client, ha
 Set environment variables di Vercel Project Settings → Environment Variables. Tambahkan:
 
 Variable	Nilai	Digunakan oleh
-SUPABASE_URL	URL project Supabase (https://xxxx.supabase.co)	Server & frontend
-SUPABASE_ANON_KEY	Anon/public key dari Supabase	Frontend (aman untuk diekspos)
+NEXT_PUBLIC_SUPABASE_URL	URL project Supabase (https://xxxx.supabase.co)	Server & frontend
+NEXT_PUBLIC_SUPABASE_ANON_KEY	Anon/public key dari Supabase	Frontend (aman untuk diekspos)
 SUPABASE_SERVICE_ROLE_KEY	Service role key dari Supabase (RAHASIA)	Hanya server functions
 TELEGRAM_BOT_TOKEN	Token bot Telegram	Server functions (webhook, notifikasi)
 TELEGRAM_ADMIN_CHAT_ID	Chat ID admin Telegram	Server functions (approval)

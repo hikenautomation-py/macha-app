@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [revisiNote, setRevisiNote] = useState('');
   const [resolveFor, setResolveFor] = useState(null);
   const [resolveNote, setResolveNote] = useState('');
+  const [assignFor, setAssignFor] = useState(null);
+  const [assignTarget, setAssignTarget] = useState('');
 
   const load = useCallback(async () => {
     if (!token || !profile) return;
@@ -66,6 +68,15 @@ export default function Dashboard() {
     }
     if (profile) load();
   }, [loading, session, profile, router, load]);
+
+  useEffect(() => {
+    if (!assignFor) return;
+    function onKey(e) {
+      if (e.key === 'Escape') setAssignFor(null);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [assignFor]);
 
   async function approve(task) {
     if (!task.report?.reportId) return;
@@ -140,6 +151,30 @@ export default function Dashboard() {
     setBusyId(null);
     setResolveFor(null);
     setResolveNote('');
+    await load();
+  }
+
+  function openAssign(item) {
+    setAssignFor(item);
+    setAssignTarget('');
+    setError('');
+  }
+
+  async function submitAssign() {
+    if (!assignFor) return;
+    if (!assignTarget) {
+      setError('Pilih dulu bawahan yang ditugaskan.');
+      return;
+    }
+    setBusyId(assignFor.id);
+    const res = await apiFetch(token, `/api/external/${assignFor.id}/assign`, {
+      method: 'POST',
+      body: { assignedTo: assignTarget },
+    });
+    if (!res.ok) setError(apiErrorMessage(res));
+    setBusyId(null);
+    setAssignFor(null);
+    setAssignTarget('');
     await load();
   }
 
@@ -299,11 +334,54 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <button className="btn" style={{ marginTop: 12 }} onClick={() => openResolve(e)}>Resolve</button>
+              <div className="row" style={{ marginTop: 12 }}>
+                <button className="btn" onClick={() => openResolve(e)}>Resolve</button>
+                <button className="btn" onClick={() => openAssign(e)}>Assign to</button>
+              </div>
             )}
           </div>
         ))
       )}
+
+      {assignFor ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setAssignFor(null)}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="assign-title"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <h3 id="assign-title">Tugaskan ke bawahan</h3>
+            <p className="muted" style={{ marginTop: 8 }}>
+              {assignFor.type === 'problem' ? '🚨 Laporan masalah' : '💡 Permintaan improvement'} dari {assignFor.nama}
+            </p>
+            <label className="f-label" htmlFor="assign-target" style={{ marginTop: 16 }}>Pilih bawahan</label>
+            <select
+              id="assign-target"
+              className="f-input"
+              value={assignTarget}
+              onChange={(ev) => setAssignTarget(ev.target.value)}
+            >
+              <option value="">Pilih bawahan</option>
+              {team.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.nama}{m.title ? ` · ${m.title}` : ''}
+                </option>
+              ))}
+            </select>
+            {team.length === 0 ? (
+              <p className="muted" style={{ marginTop: 8 }}>Belum ada bawahan di tim kamu.</p>
+            ) : null}
+            <div className="row" style={{ marginTop: 16 }}>
+              <button className="btn btn-primary" disabled={busyId === assignFor.id} onClick={submitAssign}>
+                {busyId === assignFor.id ? 'Menugaskan…' : 'Konfirmasi'}
+              </button>
+              <button className="link-btn" disabled={busyId === assignFor.id} onClick={() => setAssignFor(null)}>Batal</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="section-title">Statistik tim</div>
       {team.length === 0 ? (

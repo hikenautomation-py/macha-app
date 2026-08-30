@@ -27,6 +27,7 @@ yarn-error.log*
 .env.production.local
 .env*.local
 apicredential.md
+/.commandcode/
 
 # vercel
 .vercel

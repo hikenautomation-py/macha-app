@@ -227,6 +227,19 @@ Alternatif: buka form web publik di `app.machapp.web.id/laporan` dan
 `app.machapp.web.id/request`. Siapa pun yang login web bisa melihat daftar
 laporan/request tanpa menunggu delegasi atasan.
 
+**Penanganan laporan dari web** (bukan hanya lewat Telegram):
+- **Teknisi/operator** login ke `/tech` → lihat section "Laporan umum &
+  request" di sidebar → klik **"🙋 Pick up"** pada laporan terbuka.
+  Laporan otomatis dibuatkan task untuk dirinya sendiri
+  (`POST /api/external/{id}/pickup`, helper `createTaskFromExternal`).
+- **Atasan** login ke `/dashboard` → lihat section "Laporan umum & request" →
+  klik **"Resolve"** untuk menutup tanpa task, atau **"Assign to"** untuk
+  munculkan modal pilih bawahan → task baru tercipta untuk bawahan
+  (`POST /api/external/{id}/assign`).
+- Kedua aksi web menggunakan guard `.eq('status','open')` yang sama dengan
+  pickup Telegram, sehingga **aman dari double-pick** (user yang kalah dapat
+  pesan `ALREADY_PICKED`).
+
 ### Rangkuman notifikasi
 
 | Kejadian | Dikirim ke |
@@ -237,7 +250,9 @@ laporan/request tanpa menunggu delegasi atasan.
 | Task disetujui | Pelaksana + group/channel terdaftar |
 | Task perlu revisi | Pelaksana + group/channel terdaftar |
 | Laporan/request masuk | Admin + group/channel terdaftar (tombol Pick up / Reject) |
-| Laporan/request di-pick up | Task baru ke si picker |
+| Laporan/request di-pick up (Telegram) | Task baru ke si picker |
+| Laporan/request di-pick up (web `/tech`) | Task baru ke picker + email |
+| Laporan/request di-assign (web `/dashboard`) | Task baru ke bawahan + email |
 | Akun di-approve | Email user (jika email diisi saat registrasi) |
 
 > Selain Telegram, notifikasi penting juga dikirim ke **email** penerima

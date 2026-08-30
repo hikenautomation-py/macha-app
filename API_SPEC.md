@@ -157,6 +157,27 @@ Semua user login. Daftar laporan umum / request (tidak terbatas atasan).
 POST /external/{id}/resolve
 Atasan. Body: { "keputusan": "..." } → status resolved.
 
+POST /external/{id}/pickup
+Semua user login. Body kosong. Teknisi/operator mengambil laporan terbuka
+untuk dirinya sendiri — server membuat task baru (`assigned_to = profile.id`,
+`assigned_by = profile.atasan_id`) dan update `external_requests.status = 'picked'`
+dengan guard `.eq('status', 'open')` (first-come-first-served, anti double-pick).
+Notif Telegram pribadi + email dikirim ke picker. Implementasi bersama
+ada di helper `createTaskFromExternal` (`lib/external.js`).
+
+POST /external/{id}/assign
+Atasan (golongan ≥ 5, title SPV/ASM/SM). Body: `{ "assignedTo": "<user_id>" }`.
+`assignedTo` harus bawahan di subtree leader. Server membuat task baru
+(`assigned_by = profile.id`, `assigned_to = assignedTo`) dan update
+`external_requests.status = 'picked'` dengan guard yang sama.
+Notif Telegram + email dikirim ke bawahan.
+
+Response (kedua endpoint di atas):
+```json
+{ "success": true, "data": { "taskId": "abc123", "status": "assigned" } }
+```
+Response gagal umum: `PERMISSION_DENIED`, `INVALID_ARGUMENT`, `CONFLICT` (double-pick / status sudah ditutup), `NOT_FOUND`.
+
 GET /problems?status=open
 Atasan. Problem report pada task yang assigned_by = dirinya, disertai judul task + nama pelapor.
 
@@ -191,6 +212,8 @@ Endpoint	Method	Golongan minimum
 /teams/{id}/stats	GET	5 (hanya id == diri sendiri)
 /external	POST	- (publik); GET semua user login
 /external/{id}/resolve	POST	5
+/external/{id}/pickup	POST	semua user login (assigned_to = diri)
+/external/{id}/assign	POST	5 (assigned_to di subtree bawahan)
 /dashboard/summary	GET	5
 /users/{id}/points	GET	semua (hanya data sendiri, kecuali atasan)
 /telegramWebhook	POST	- (validasi via Telegram secret)

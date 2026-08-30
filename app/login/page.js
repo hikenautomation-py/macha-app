@@ -59,8 +59,7 @@ export default function Login() {
 
   return (
     <div className="narrow">
-<div className="phone">
-            <div className="phone-inner">
+      <div className="panel">
               <div className="brand" style={{ fontSize: 20, marginBottom: 6 }}>
                 <span aria-hidden="true">🔧</span> Macha Task
               </div>
@@ -127,6 +126,5 @@ export default function Login() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

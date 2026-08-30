@@ -1,10 +1,10 @@
 'use client';
 
-// Bungkus tampilan mobile-first (DESIGN.md): frame "phone" untuk halaman pelaksana.
+// Wrapper konten sempit (form pelaksana): full-width di HP, card di desktop.
 export default function PhoneFrame({ children }) {
   return (
-    <div className="phone">
-      <div className="phone-inner">{children}</div>
+    <div className="narrow">
+      <div className="panel">{children}</div>
     </div>
   );
 }

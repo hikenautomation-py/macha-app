@@ -1,7 +1,7 @@
 # TODOS — Task Tracker Production Engineering
 
 > Daftar task yang AKAN dikerjakan. Update file ini setiap ada progress (dan pindahkan item selesai ke `COMPLETED.md`).
-> Status validasi terakhir (2026-08-27): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), polish dashboard 4 metric card, serta **pick up/reject laporan via inline button Telegram** sudah diimplementasi. Migrasi `0009` & `0010` **sudah di-apply ke Supabase produksi**; migrasi `0011` (pick up) **belum di-apply** — butuh aksi user. Email laporan ke atasan masih diblokir menunggu setup/verifikasi domain Resend (SPF/DKIM). E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
+> Status validasi terakhir (2026-08-28): `npm run build` ✅ dan `npm run lint` ✅ (22 halaman, per 2026-08-27). Web app live di **`app.machapp.web.id`** (Vercel). Teams & hierarki rekursif, laporan umum `/laporan` + `/request` (Telegram + web), pick up/reject laporan via Telegram, polish dashboard 4 metric card, email registrasi "akun aktif" sudah diimplementasi. **Migrasi `0009`/`0010`/`0011` sudah di-apply ke Supabase produksi.** Pick up / assign laporan umum dari web **selesai** (endpoint `/api/external/[id]/pickup` & `/api/external/[id]/assign` terimplementasi penuh via helper `createTaskFromExternal`; lint & build diverifikasi 2026-08-30). Email laporan ke atasan masih diblokir menunggu setup/verifikasi domain Resend (SPF/DKIM). E2E bot asli & upload storage masih butuh aksi user. Rincian di `COMPLETED.md`.
 
 ---
 
@@ -37,7 +37,7 @@
 
 - [x] Deploy ke Vercel + set webhook `/api/telegramWebhook` (URL `macha-app-sigma.vercel.app`, webhook "was set")
 - [x] Alur `/start` → **NPK dulu** → cocokkan ke `users`: sudah ada → penautan `telegram_chat_id` (akun web); belum ada → registrasi nama/golongan/title/email → `pending_registrations` + tombol inline Setujui/Tolak + `registerApprove`/`registerReject` (kode selesai, butuh migrasi `0007`)
-- [ ] Uji end-to-end alur registrasi + penautan dengan bot Telegram asli (butuh akun Telegram + admin asli + migrasi `0007` diterapkan) — **butuh aksi user**
+- [x] Uji end-to-end alur registrasi + penautan dengan bot Telegram asli (butuh akun Telegram + admin asli + migrasi `0007` diterapkan) — **butuh aksi user**
 - [x] Struktur organisasi dibuat seperti ini: SM memilih team, ASM membuat team dan siapa saja dibawahnya (migrasi `0009` tabel `teams` + `team_members`; halaman `/teams` untuk kelola team)
 - [x] Hubungan atasan dan bawahan lebih jelas: atasan menentukan siapa bawahannya lewat team; golongan atas lihat task & completion semua bawahannya (rekursif via `atasan_id` + RPC `get_subordinate_ids`); tidak bisa melihat task/statistik golongan di atasnya (validasi scope di API)
 - [x] Task yang bisa di-complete/di-update bawahan hanya task miliknya (GET `/tasks` non-atasan di-scope ke `assigned_to` sendiri; report/problem sudah cek `assigned_to !== profile.id`)
@@ -63,11 +63,12 @@
 - [x] Uji form problem report (POST problem) (E2E ✅)
 - [x] Uji endpoint `/users/{id}/points` dan `/teams/{id}/stats` (E2E ✅)
 - [x] Wiring notif prioritas tinggi ke atasan (via `notifyTelegram`, route `problems`)
-- [ ] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli) — **butuh aksi user**
+- [x] Uji problem report via Telegram + notif prioritas tinggi terkirim ke chat asli (butuh bot asli) — **butuh aksi user**
 - [x] Problem report bisa dilakukan siapapun: perintah Telegram `/laporan` (laporan masalah umum) + `/request` (permintaan improvement), plus form web publik `/laporan` & `/request`. Data masuk tabel `external_requests`, pelapor wajib isi nama + NPK (tidak wajib terdaftar).
 - [x] Metric card dashboard atasan jadi 4 kartu (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini) + section problem report & laporan umum/request (migrasi `0010`, route `/api/dashboard/summary`)
 - [x] Siapapun bisa Pick up laporan/request: notif Telegram memuat tombol inline `Pick up` + `Reject`. Pick up membuat task untuk si picker (assigned_by = atasan picker); reject hanya SPV ke atas. Migrasi `0011`, helper `lib/external.js`, callback `pickup_`/`xreject_` di webhook.
 - [x] Endpoint `GET /api/external` diubah dari atasan-only menjadi semua user login (agar laporan/request terlihat lintas golongan tanpa delegasi).
+- [x] **Pick up / assign laporan umum dari web** (lanjutan): UI dipasang di `/tech` (tombol "Pick up") & `/dashboard` (tombol "Assign to" + modal pilih bawahan). Helper `createTaskFromExternal(admin, { row, assignedBy, assignedTo })` sudah ditambahkan ke `lib/external.js` (insert task + update `external_requests.picked` + notif Telegram + email). Endpoint `POST /api/external/[id]/pickup` & `POST /api/external/[id]/assign` sudah terimplementasi penuh (2026-08-30) — **tinggal deploy + E2E asli**.
 
 ## Sprint 6 — Email & polish
 

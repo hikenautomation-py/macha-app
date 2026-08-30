@@ -2,11 +2,14 @@
 
 Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau tim/kapasitas berbeda. Urutan sengaja dibuat supaya tiap sprint menghasilkan sesuatu yang bisa didemokan, bukan menunggu semua selesai baru terlihat hasilnya.
 
-> **STATUS UPDATE (2026-08-25)** — Dokumen ini adalah roadmap **asli** yang ditulis dengan asumsi stack **Firebase**. Implementasi aktual memakai **Supabase (Postgres + Auth + Storage) + Vercel (Next.js App Router) + Telegram Bot + Resend** — lihat `ARCHITECTURE.md`. Pemetaan: Firestore → Supabase Postgres, Firebase Auth → Supabase Auth, Cloud Functions → Next.js API routes di Vercel.
+> **STATUS UPDATE (2026-08-25)** — Dokumen ini adalah roadmap **asli** dari tahap perencanaan awal. Implementasi aktual memakai **Supabase (Postgres + Auth + Storage) + Vercel (Next.js App Router) + Telegram Bot + Resend** — lihat `ARCHITECTURE.md`. Stack ini yang dipakai untuk build.
 >
 > **STATUS UPDATE (2026-08-26)** — Web app live di **https://app.machapp.web.id**. Email notifikasi dari **Macha App \<notif.machapp.web.id\>**. Fitur **penautan Web ↔ Telegram via NPK** selesai: `/start` → NPK → cocokkan ke akun web (tertaut) atau lanjut registrasi (nama/golongan/title/email). Menunggu apply migrasi `0007` + deploy + E2E bot asli.
 >
-> **Progress per sprint:** Sprint 0–5 ✅ **SELESAI** (Sprint 2 & 5 kini termasuk teams/hierarki, laporan umum `/laporan` + `/request`, dan polish dashboard) · Sprint 6 🔄 **SEBAGIAN** (email + domain pengirim + penautan selesai; tes spam kantor berjalan) · Sprint 7–8 ⬜ **BELUM MULAI**.
+> **STATUS UPDATE (2026-08-28)** — Migrasi `0009`/`0010`/`0011` sudah di-apply ke Supabase produksi. Pick up laporan/request sudah bisa lewat Telegram (inline button); **pick up / assign dari web** (UI siap di `/tech` & `/dashboard`) kini lengkap — endpoint `POST /api/external/[id]/pickup` & `/assign` diimplementasi penuh via helper `createTaskFromExternal` di `lib/external.js` (lihat update 2026-08-30). Email laporan ke atasan masih terblokir DNS SPF `notif.machapp.web.id` (butuh setup/verifikasi domain Resend oleh user).
+> **STATUS UPDATE (2026-08-30)** — **Pick up / assign laporan umum dari web selesai**: endpoint `POST /api/external/[id]/pickup` (semua user login) & `POST /api/external/[id]/assign` (atasan golongan ≥ 5; `assignedTo` harus di subtree bawahan) — keduanya via `lib/external.js` → `createTaskFromExternal` (guard anti double-pick + notif Telegram/email). Dokumentasi disinkron dengan stack aktual; `npm run lint` ✅ dan `npm run build` ✅ (2026-08-30).
+>
+> **Progress per sprint:** Sprint 0–5 ✅ **SELESAI** (Sprint 2 & 5 kini termasuk teams/hierarki, laporan umum `/laporan` + `/request`, pick up Telegram, dan polish dashboard) · Sprint 6 🔄 **SEBAGIAN** (email + domain pengirim + penautan selesai; tes spam kantor menunggu verifikasi DNS Resend) · Sprint 7–8 ⬜ **BELUM MULAI**.
 > Rincian per-item ada di `COMPLETED.md` (selesai) dan `TODOS.md` (sisa). Checkbox di bawah adalah roadmap historis dan tidak lagi mencerminkan stack/status aktual.
 
 ---
@@ -14,7 +17,7 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 ## Sprint 0 — Persiapan (1 minggu, sebelum sprint 1 dimulai)
 **Tujuan**: semua akun dan akses siap sebelum coding dimulai.
 
-- [ ] Buat Firebase project, upgrade ke plan Blaze
+- [x] Buat project Supabase (`pnpzkdyamjnxhujhbwjw`) + pasang environment variables dasar
 - [ ] Buat bot Telegram lewat BotFather, simpan token
 - [ ] Tentukan admin approval registrasi, dapatkan `chat_id`-nya
 - [ ] Daftar akun email service (Resend/SendGrid)
@@ -28,13 +31,13 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 ## Sprint 1 — Fondasi data & auth
 **Tujuan**: struktur data dan login jalan, meskipun belum ada UI penuh.
 
-- Setup Firestore schema (`users`, `pending_registrations`, `tasks`, subcollection `reports`/`problems`, `pointsHistory`)
+- Setup PostgreSQL schema via migrasi Supabase (`users`, `pending_registrations`, `tasks`, `task_reports`, `task_problems`, `points_history` + RLS policies)
 - Tulis security rules awal (lihat `DEVELOPER.md`)
-- Setup Firebase Auth (email/password)
+- Setup Supabase Auth (email/password)
 - Seed data dummy: beberapa user dengan golongan berbeda
-- Deploy skeleton Cloud Functions project (belum ada logic, hanya "hello world" endpoint untuk validasi deployment jalan)
+- Deploy skeleton Next.js API routes di Vercel (belum ada logic, hanya "hello world" endpoint untuk validasi deployment jalan)
 
-**Output**: bisa login ke Firebase Auth dan baca data dummy dari Firestore lewat console.
+**Output**: bisa login ke Supabase Auth dan baca data dummy dari database lewat dashboard Supabase.
 
 ---
 
@@ -67,7 +70,7 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 ## Sprint 4 — Completion report & approval poin
 **Tujuan**: menutup loop utama aplikasi — ini sprint paling penting.
 
-- Form completion report (web) sesuai mockup, termasuk upload foto ke Firebase Storage
+- Form completion report (web) sesuai mockup, termasuk upload foto ke Supabase Storage
 - Endpoint `POST /tasks/{id}/reports`
 - Dashboard atasan: daftar antrian approval
 - Endpoint approve/reject dengan transaksi atomik (status + poin)
@@ -110,8 +113,8 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 - Pilih 5-10 orang dari berbagai golongan untuk uji coba nyata selama sprint ini
 - Kumpulkan feedback harian (bisa lewat grup Telegram terpisah)
 - Perbaiki bug dan gesekan UX yang ditemukan
-- Setup scheduled backup Firestore
-- Finalisasi budget alert dan monitoring Cloud Functions
+- Setup scheduled backup database
+- Finalisasi budget alert dan monitoring (Usage Alerts Vercel + Spending Cap Supabase)
 
 **Output**: aplikasi siap dipakai seluruh tim.
 

@@ -122,6 +122,8 @@
 - [x] `lib/external.js` — helper teks + keyboard inline + broadcast notifikasi
 - [x] Webhook Telegram: callback `pickup_` (siapa pun tertaut, buat task assigned_by = atasan picker) & `xreject_` (hanya SPV ke atas)
 - [x] `GET /api/external` jadi semua user login (tidak terbatas atasan)
+- [x] Migrasi `0009` & `0010` di-apply ke Supabase produksi
+- [x] Migrasi `0011` di-apply ke Supabase produksi
 
 ### Polish dashboard (Sprint 5)
 - [x] Dashboard atasan: 4 metric card + section problem report + laporan umum/request + statistik tim
@@ -129,8 +131,61 @@
 ### Validasi
 - [x] `npm run lint` ✅ (No ESLint warnings or errors)
 - [x] `npm run build` ✅ (22/22 halaman, semua route API ter-compile)
-- [ ] Apply migrasi `0009` & `0010` ke Supabase produksi — **butuh aksi user**
 - [ ] E2E bot asli untuk `/laporan` & `/request` — **butuh aksi user**
+
+---
+
+## 2026-08-30 — Pick up / assign laporan umum dari web (selesai: UI + endpoint)
+
+### Latar belakang
+Pick up laporan/request selama ini hanya bisa lewat tombol inline Telegram.
+Orang yang jarang buka Telegram (atau yang lebih nyaman klik di web) tidak bisa
+langsung menangani laporan. Sekarang ditambahkan dua jalur baru di web:
+
+- **Teknisi/operator** (golongan 1-4) di `/tech` bisa klik **"🙋 Pick up"** pada
+  laporan terbuka — otomatis membuat task untuk dirinya sendiri (assigned_by =
+  atasannya langsung).
+- **Atasan** (SPV ke atas) di `/dashboard` bisa klik **"Assign to"** pada laporan
+  terbuka — muncul modal pilih bawahan, task dibuat untuk bawahan tersebut
+  (assigned_by = atasan yang menugaskan).
+
+### Yang sudah selesai
+- [x] `lib/external.js` — helper `createTaskFromExternal(admin, { row, assignedBy, assignedTo })`:
+  insert task `assigned` + update `external_requests` ke `picked` dengan guard
+  `.eq('status', 'open')` (first-come-first-served, anti double-pick) +
+  rollback task jika update gagal + kirim notif Telegram pribadi ke picker +
+  email `emailTaskAssigned` ke picker
+- [x] `app/tech/page.js` — section "Laporan umum & request" di sidebar + tombol
+  `🙋 Pick up` per item (state `busyId` + error inline)
+- [x] `app/dashboard/page.js` — section laporan/request + tombol `Resolve` (untuk
+  laporan yang tidak perlu dibuat task) + tombol `Assign to` (modal dengan
+  `<select>` anggota tim dari `/api/teams/{id}/stats`, Esc untuk tutup, fokus
+  trap dialog `aria-modal`)
+- [x] `app/globals.css` — kelas `.modal-backdrop` + `.modal` + styling form
+  untuk dialog pick up / assign
+- [x] `components/PhoneFrame.jsx` — penyesuaian kecil untuk konsistensi layout
+  mobile di section laporan/request `/tech`
+- [x] `app/login/page.js` — copy microcopy kecil (konsistensi dengan CTA baru)
+
+### Endpoint — diimplementasi (2026-08-30)
+- [x] `app/api/external/[id]/pickup/route.js` — `POST`, scope: semua user login.
+  Body kosong. Panggil `createTaskFromExternal(admin, { row, assignedBy: profile.atasan_id, assignedTo: profile.id })`;
+  laporan sudah diambil/ditutup → `409 CONFLICT`.
+- [x] `app/api/external/[id]/assign/route.js` — `POST`, scope: atasan (golongan ≥ 5
+  + title SPV/ASM/SM). Body `{ assignedTo }`. Validasi `assignedTo` ada di
+  subtree bawahan leader (`getSubordinateIds` → `403 PERMISSION_DENIED`).
+  Panggil `createTaskFromExternal(admin, { row, assignedBy: profile.id, assignedTo })`
+
+### Validasi
+- [x] `npm run lint` ✅ (No ESLint warnings/errors — 2026-08-30)
+- [x] `npm run build` ✅ (22 halaman + semua route API ter-compile — 2026-08-30)
+- [ ] E2E web pick up + assign — **butuh deploy ke produksi + uji user asli**
+
+---
+- Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)
+- Verifikasi domain pengirim Resend (user-dependent — DNS SPF/DKIM `notif.machapp.web.id`)
+- Connect Git auto-deploy Vercel (opsional)
+- UAT dengan pengguna asli + polish UI (Sprint 6–8)
 
 ---
 - Validasi `/daftargrup` di group/channel Telegram asli (butuh aksi user: bot jadi admin, disable Group Privacy)

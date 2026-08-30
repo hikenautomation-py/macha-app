@@ -73,7 +73,7 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
   - coral = problem / danger
 - **Microcopy percakapan**, bukan formal kaku — contoh: "Yuk mulai, kenalan dulu", "Semangat hari ini!", "Ceritain progressnya".
 - **Tanpa tekanan berlebihan** — tidak ada countdown merah mencolok, tidak ada red badge angka besar (kecuali problem report yang memang harus menonjol).
-- Badge memakai ikon (Tabler Icons) untuk memperjelas status.
+- Badge memakai ikon/emoji untuk memperjelas status (implementasi aktual memakai emoji, menggantikan Tabler Icons yang dipakai di `mockup.html`).
 
 ---
 
@@ -90,16 +90,18 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
 | Stamp note | `.stamp-note` latar `--sky-tint` (info) / `--coral-tint` (masalah) |
 | Table statistik | `.tidy` 13px, header teks `--ink-soft`, angka pakai mono |
 | Error state | `.err` teks 12px `--coral-ink`, muncul saat validasi gagal |
+| Modal dialog | `.modal-backdrop` latar hitam transparan + `.modal` kartu rounded dengan `role="dialog"`, `aria-modal`, `aria-labelledby`; Esc / klik backdrop tutup |
 
 ---
 
 ## 6. Halaman & urutan (sesuai mockup)
 
 1. **Login / Registrasi** — form email/password (login) + nama, NPK, golongan, title/jabatan (daftar) + stamp note: "belum punya akun? daftar, atau ketik /start di bot Telegram dan masukkan NPK untuk menautkan akun".
-2. **Dashboard atasan** — greeting, tombol "Buat task baru" + "Kelola tim", 4 metric card (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini), antrian approval (ticket), section problem report (task), section laporan umum & request, tabel statistik tim.
-3. **Dashboard technician** — greeting blob, daftar "Task kamu hari ini" (ticket), 2 tombol aksi (Lapor selesai / Lapor masalah), kartu "Poin bulan ini".
+2. **Dashboard atasan** — greeting, tombol "Buat task baru" + "Kelola tim", 4 metric card (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini), antrian approval (ticket), section problem report (task), section laporan umum & request (dengan tombol `Resolve` / `Assign to` per item; tombol `Assign to` membuka **modal** dengan `<select>` anggota tim), tabel statistik tim.
+3. **Dashboard technician** — greeting blob, daftar "Task kamu hari ini" (ticket), 2 tombol aksi (Lapor selesai / Lapor masalah), kartu "Poin bulan ini", **sidebar "Laporan umum & request"** dengan tombol `🙋 Pick up` per item (status busy + pesan error inline saat gagal).
 4. **Lapor selesai** — kartu konteks task (teal tint), textarea catatan (wajib), upload foto (opsional), tombol "Kirim untuk approval", stamp note poin.
 5. **Lapor masalah** — kartu konteks task (coral tint), urgency pick, textarea deskripsi (wajib), tombol "Kirim ke atasan", stamp note prioritas tinggi.
 6. **Kelola tim** — daftar team + form buat team (nama + lead), kelola anggota (tambah/hapus bawahan).
 7. **Laporan umum (publik)** — form nama + NPK + deskripsi masalah, tampil dalam frame phone (mobile-first).
 8. **Permintaan improvement (publik)** — form nama + NPK + deskripsi improvement.
+9. **Modal dialog (pick up/assign)** — `.modal-backdrop` (latar gelap, klik tutup) + `.modal` (kartu putih rounded, `aria-modal="true"`, `aria-labelledby`, tombol Esc untuk tutup) — dipakai dashboard atasan saat Assign to.

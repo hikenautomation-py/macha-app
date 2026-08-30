@@ -1,6 +1,6 @@
 # Architecture — Task Tracker Production Engineering
 
-> Dokumen ini merangkum arsitektur aplikasi. Catatan penting: `PROJECT_BRIEF.md` awalnya menyebut **Firebase**, tetapi implementasi aktual (lihat `API_SPEC.md`, `DEVELOPER.md`, dan `apicredential.md`) telah dipindahkan ke **Supabase + Vercel**. Stack di bawah ini adalah yang dipakai untuk build.
+> Dokumen ini merangkum arsitektur aplikasi. Stack yang dipakai untuk build: **Supabase (Postgres + Auth + Storage) + Vercel (Next.js App Router) + Telegram Bot + Email (Resend)**. Detail kontrak API dan setup ada di `API_SPEC.md`, `DEVELOPER.md`, dan `apicredential.md`.
 
 ---
 
@@ -28,7 +28,7 @@ Web app live di **`https://app.machapp.web.id`** (Vercel). Akun web dan Telegram
 | Notifikasi | **Telegram Bot API** + **Email service** (Resend/SendGrid) | Telegram dua arah, email satu arah |
 | Frontend | **Next.js (App Router) + React** | Mobile-first, design token custom |
 
-### Mengapa Supabase + Vercel (bukan Firebase)
+### Mengapa Supabase + Vercel
 - `API_SPEC.md` dan `DEVELOPER.md` mendefinisikan endpoint sebagai Vercel Serverless Functions + PostgreSQL dengan Supabase Auth JWT.
 - PostgreSQL cocok untuk relasi task → reports → points yang transaksional (approval = status + poin dalam satu transaksi).
 - Supabase Realtime untuk dashboard auto-update; Storage untuk lampiran foto.
@@ -111,7 +111,7 @@ Status enum: `assigned` → `in_progress` → `report_submitted` → `approved` 
 3. **Kerjakan**: technician buka dashboard → lihat task miliknya → ubah status / submit completion report. Bawahan tidak bisa melihat/complete task di luar `assigned_to`-nya.
 4. **Approval**: `POST /api/tasks/{id}/reports/{reportId}/approve` → transaksi atomik (status → `approved` + insert `points_history`) → notif pelaksana.
 5. **Problem (task)**: `POST /api/tasks/{id}/problems` → notif prioritas tinggi langsung ke atasan (tanpa antrian approval).
-6. **Laporan umum & request**: `/laporan` dan `/request` (bot atau form web publik) → nama + NPK + deskripsi → `external_requests` → notif ke admin/channel dengan tombol `Pick up` / `Reject`. Pick up (siapa pun yang chat_id tertaut) membuat task untuk si picker (assigned_by = atasan picker); reject hanya SPV ke atas. Siapa pun yang login web bisa melihat daftar laporan/request.
+6. **Laporan umum & request**: `/laporan` dan `/request` (bot atau form web publik) → nama + NPK + deskripsi → `external_requests` → notif ke admin/channel dengan tombol `Pick up` / `Reject`. Pick up (siapa pun yang chat_id tertaut) membuat task untuk si picker (assigned_by = atasan picker); reject hanya SPV ke atas. Siapa pun yang login web bisa melihat daftar laporan/request, dan atasan bisa langsung menugaskan laporan ke bawahan lewat `POST /api/external/{id}/assign`. Teknisi/operator yang login web juga bisa mengambil laporan untuk dirinya lewat `POST /api/external/{id}/pickup` — helper `createTaskFromExternal` di `lib/external.js` insert task + update `external_requests.picked` (guard first-come-first-served) + notif Telegram + email.
 
 ---
 
@@ -149,8 +149,10 @@ macha-app/
 │       ├── teams/route.js               # GET/POST team
 │       ├── teams/[id]/members/route.js
 │       ├── teams/[id]/stats/route.js
-│       ├── external/route.js            # POST publik + GET atasan
+│       ├── external/route.js            # POST publik + GET semua user login
 │       ├── external/[id]/resolve/route.js
+│       ├── external/[id]/pickup/route.js # POST: teknisi ambil laporan (assigned_to = diri)
+│       ├── external/[id]/assign/route.js # POST: atasan tugaskan laporan ke bawahan
 │       ├── dashboard/summary/route.js   # metric card
 │       ├── users/[id]/points/route.js
 │       └── telegramWebhook/route.js
@@ -158,11 +160,14 @@ macha-app/
 ├── lib/
 │   ├── supabase.js         # client browser + server + admin
 │   ├── auth.js             # helper verifikasi JWT + golongan
+│   ├── constants.js        # WEB_APP_URL, URGENCY_LABEL, isAtasan, dll.
 │   ├── hierarchy.js        # helper subtree bawahan (RPC get_subordinate_ids)
 │   ├── email.js            # template email notifikasi
+│   ├── external.js         # helper laporan/request (teks, keyboard, createTaskFromExternal)
 │   ├── http.js             # apiFetch client
+│   ├── mappers.js          # mapper row DB → shape response API
 │   └── telegram.js         # helper kirim pesan / edit keyboard
-├── supabase/migrations/    # SQL schema + RLS (0001..0010)
+├── supabase/migrations/    # SQL schema + RLS (0001..0011)
 ├── ARCHITECTURE.md / DESIGN.md / API_SPEC.md / DEVELOPER.md
 ├── PROJECT_BRIEF.md / ROADMAP.md / TODOS.md / COMPLETED.md
 └── apicredential.md
