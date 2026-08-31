@@ -1,3 +1,9 @@
+# ---- file temp validasi lokal ----
+_build*.txt
+_lint*.txt
+_fscan*.txt
+_chain*.txt
+_probe*.mjs
 # dependencies
 /node_modules
 /.pnp
