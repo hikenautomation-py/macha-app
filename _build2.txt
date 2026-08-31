@@ -1,0 +1,3 @@
+npm notice run macha-app@0.1.0 build
+npm notice run next build
+^C

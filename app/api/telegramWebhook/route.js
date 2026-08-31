@@ -1,9 +1,9 @@
 import { createAdminClient } from '@/lib/supabase';
 import { jsonOk, jsonError } from '@/lib/auth';
 import { sendTelegramMessage, answerCallback, editMessageText, notifyTelegram, setBotCommands } from '@/lib/telegram';
-import { emailRegistrationApproved, emailExternalReport, emailTaskAssigned } from '@/lib/email';
+import { emailRegistrationApproved, emailExternalReport } from '@/lib/email';
 import { normalizeUrgency, URGENCY_LABEL, isAtasan, userTitle, TITLE_OPTIONS, WEB_APP_URL, ATASAN_TITLES, golonganLabel } from '@/lib/constants';
-import { externalRequestText, broadcastExternalRequest } from '@/lib/external';
+import { createTaskFromExternal, externalRequestText, broadcastExternalRequest } from '@/lib/external';
 
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -367,7 +367,7 @@ async function handleExternalPickup(admin, cq, requestId, messageId) {
     return;
   }
 
-  // Ambil row + lock dengan cek status; hanya boleh pickup saat masih open.
+  // Cek status awal (UX); guard atomik sebenarnya ada di createTaskFromExternal.
   const { data: row } = await admin
     .from('external_requests')
     .select('*')
@@ -384,37 +384,21 @@ async function handleExternalPickup(admin, cq, requestId, messageId) {
     return;
   }
 
-  const atasanId = user.atasan_id;
+  // Buat task + klaim laporan secara atomik lewat helper yang sama dengan web
+  // (includes notifikasi Telegram pribadi + email ke picker).
+  const { task, error } = await createTaskFromExternal(admin, {
+    row,
+    assignedBy: user.atasan_id || null,
+    assignedTo: user.id,
+  });
 
-  // Buat task dari laporan/request.
-  const { data: task, error: taskErr } = await admin
-    .from('tasks')
-    .insert({
-      assigned_by: atasanId,
-      assigned_to: user.id,
-      title: `[${row.type === 'problem' ? 'Laporan' : 'Request'}] ${row.description.slice(0, 80)}`,
-      description: `Laporan dari ${row.nama}${row.npk ? ` (NPK ${row.npk})` : ''}.\n\n${row.description}`,
-      points: 0,
-      deadline: null,
-      status: 'assigned',
-    })
-    .select('*')
-    .single();
-
-  if (taskErr) {
-    await answerCallback(cq.id, `Gagal membuat task: ${taskErr.message}`);
-    return;
-  }
-
-  const { error: updErr } = await admin
-    .from('external_requests')
-    .update({ status: 'picked', picked_by: user.id, task_id: task.id })
-    .eq('id', requestId)
-    .eq('status', 'open');
-
-  if (updErr) {
-    await answerCallback(cq.id, 'Laporan sudah diambil orang lain.');
-    await editMessageText(chatId, messageId, `✅ <b>Sudah ditangani</b>\n${externalRequestText(row)}`);
+  if (error) {
+    if (error.conflict) {
+      await answerCallback(cq.id, 'Laporan sudah diambil orang lain.');
+      await editMessageText(chatId, messageId, `✅ <b>Sudah ditangani</b>\n${externalRequestText(row)}`);
+    } else {
+      await answerCallback(cq.id, 'Gagal membuat task. Coba lagi ya.');
+    }
     return;
   }
 
@@ -424,14 +408,6 @@ async function handleExternalPickup(admin, cq, requestId, messageId) {
     messageId,
     `🙋 <b>Pick up oleh ${user.nama}</b>\n${externalRequestText(row)}`
   );
-
-  await sendTelegramMessage(
-    senderId,
-    `📋 <b>Task baru dari pick up</b>\n${task.title}\n\nKamu yang menangani laporan/request ini. Selesaikan dan lapor seperti task biasa.\n\n🔖 #task_${task.id}`
-  );
-
-  // Notif task baru ke atasan via email (jika ada email atasan).
-  await emailTaskAssigned(admin, user.id, task);
 }
 
 async function handleExternalReject(admin, cq, requestId, messageId) {
@@ -459,11 +435,17 @@ async function handleExternalReject(admin, cq, requestId, messageId) {
     return;
   }
 
-  await admin
+  const { data: closed, error: updErr } = await admin
     .from('external_requests')
     .update({ status: 'rejected', rejected_by: user.id })
     .eq('id', requestId)
-    .eq('status', 'open');
+    .eq('status', 'open')
+    .select('id');
+
+  if (updErr || !closed?.length) {
+    await answerCallback(cq.id, 'Laporan ini sudah ditangani.');
+    return;
+  }
 
   await answerCallback(cq.id, 'Laporan ditutup ❌');
   await editMessageText(
