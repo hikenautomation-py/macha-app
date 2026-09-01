@@ -39,6 +39,7 @@ Task terkait kode di project ini TIDAK boleh dinyatakan selesai kecuali:
 2. `npm run build` berhasil (proyek ini belum punya test suite — build
    sukses adalah baris pertahanan minimum untuk menangkap type error di
    TypeScript/Next.js).
+3. Update semua dokumentasi kemudian commit & push
 3. Tidak ada `console.log` yang tertinggal di kode non-debug.
 4. Perintah-perintah di atas benar-benar dijalankan di sesi ini, bukan
    diasumsikan "harusnya jalan".

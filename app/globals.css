@@ -18,8 +18,11 @@
   --sky: #4F91C7;
   --sky-tint: #E6F0F8;
   --sky-ink: #2B5D82;
-  --radius-card: 20px;
-  --radius-ctrl: 12px;
+  --radius-card: 16px;
+  --radius-ctrl: 10px;
+  --shadow-sm: 0 2px 8px rgba(31, 43, 36, .05);
+  --shadow-md: 0 8px 20px rgba(31, 78, 68, .08);
+  --sidenav-w: 208px;
   --font-head: 'Baloo 2', 'Trebuchet MS', ui-rounded, system-ui, sans-serif;
   --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
@@ -40,8 +43,54 @@ h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; margin: 0; }
 p { margin: 0; }
 a { color: inherit; text-decoration: none; }
 
-.container { max-width: 1080px; margin: 0 auto; padding: 24px 20px 80px; }
-.narrow { max-width: 420px; margin: 0 auto; padding: 24px 16px 60px; }
+.container { max-width: 1080px; margin: 0 auto; padding: 24px 20px 96px; }
+.narrow { max-width: 420px; margin: 0 auto; padding: 24px 16px 96px; }
+
+/* ---------- SideNav (desktop >= 900px) ---------- */
+.sidenav { display: none; }
+
+/* ---------- BottomNav (mobile < 900px) ---------- */
+.bottomnav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  display: flex; justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-md);
+}
+.bottomnav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 56px; padding: 4px 6px;
+  border-radius: var(--radius-ctrl);
+  font-size: 11px; font-weight: 600; color: var(--ink-faint);
+}
+.bottomnav-item.active { color: var(--teal); background: var(--teal-tint); }
+.bottomnav-item:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+@media (min-width: 900px) {
+  .bottomnav { display: none; }
+  .sidenav {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    width: var(--sidenav-w);
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+  }
+  .sidenav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-ctrl);
+    font-size: 14px; font-weight: 600; color: var(--ink-soft);
+    transition: background .12s, color .12s;
+  }
+  .sidenav-item:hover { background: var(--surface-tint); color: var(--ink); }
+  .sidenav-item.active { background: var(--teal); color: #fff; }
+  .sidenav-item:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  body:has(.sidenav) .container,
+  body:has(.sidenav) .narrow { margin-left: calc(var(--sidenav-w) + 24px); }
+  body:has(.sidenav) .container { max-width: calc(1080px); }
+}
 
 /* ---------- Phone frame (frame HP mobile-first, sesuai mockup) ---------- */
 .phone {

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { IconArrowLeft } from '@tabler/icons-react';
-import { isAtasan } from '@/lib/constants';
+import { isAtasan, URGENCY_OPTIONS, URGENCY_LABEL } from '@/lib/constants';
+import { KPI_CATEGORIES, KPI_CATEGORY_LABEL, hitungPoin } from '@/lib/points';
 
 export default function NewTask() {
   const { session, profile, loading } = useAuth();
@@ -15,7 +16,7 @@ export default function NewTask() {
   const [team, setTeam] = useState([]);
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamError, setTeamError] = useState('');
-  const [form, setForm] = useState({ judul: '', deskripsi: '', ditugaskanKe: '', bobotPoin: '5', deadline: '' });
+  const [form, setForm] = useState({ judul: '', deskripsi: '', ditugaskanKe: '', bobotPoin: '5', deadline: '', kategoriKPI: '', urgensi: 'bisa_nunggu' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -43,6 +44,12 @@ export default function NewTask() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  // Preview poin otomatis saat kategori KPI dipilih.
+  const targetMember = team.find((m) => m.userId === form.ditugaskanKe);
+  const previewPoin = form.kategoriKPI
+    ? hitungPoin({ kategoriKPI: form.kategoriKPI, golongan: targetMember?.golongan, urgensi: form.urgensi })
+    : null;
+
   async function submit(e) {
     e.preventDefault();
     setError('');
@@ -63,6 +70,8 @@ export default function NewTask() {
         ditugaskanKe: form.ditugaskanKe,
         bobotPoin: Number(form.bobotPoin) || 0,
         deadline: form.deadline || null,
+        kategoriKPI: form.kategoriKPI || null,
+        urgensi: form.urgensi,
       },
     });
     if (!res.ok) {
@@ -103,8 +112,34 @@ export default function NewTask() {
 
         <div className="row" style={{ marginTop: 12 }}>
           <div style={{ flex: 1 }}>
+            <label className="f-label">Kategori KPI</label>
+            <select className="f-input" value={form.kategoriKPI} onChange={set('kategoriKPI')}>
+              <option value="">— Tanpa kategori (poin manual) —</option>
+              {KPI_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{KPI_CATEGORY_LABEL[c]}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="f-label">Urgensi</label>
+            <select className="f-input" value={form.urgensi} onChange={set('urgensi')}>
+              {URGENCY_OPTIONS.map((u) => (
+                <option key={u} value={u}>{URGENCY_LABEL[u]}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="row" style={{ marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
             <label className="f-label">Bobot poin</label>
-            <input className="f-input" type="number" min="0" value={form.bobotPoin} onChange={set('bobotPoin')} />
+            {form.kategoriKPI ? (
+              <p style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 20, margin: '6px 0 0' }} aria-live="polite">
+                {previewPoin} poin <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink-soft)' }}>(otomatis dari bobot KPI)</span>
+              </p>
+            ) : (
+              <input className="f-input" type="number" min="0" value={form.bobotPoin} onChange={set('bobotPoin')} />
+            )}
           </div>
           <div style={{ flex: 1 }}>
             <label className="f-label">Deadline</label>

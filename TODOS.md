@@ -106,6 +106,43 @@
 
 ---
 
+## Sprint 9 — Gamifikasi: fondasi poin & bobot KPI (dari `role & responsibility.xlsx`)
+
+- [ ] Migrasi `0012_point_rules_kpi_category.sql` — kolom `tasks.kpi_category`
+  (`kualitas` / `produktivitas` / `efisiensi_cost` / `improvement` / `people_5s`)
+  + tabel `point_rules` (bobot per level dari sheet "Bobot KPI": Operator .4/.3/.1/.1/.1,
+  SPV .3/.3/.2/.1/.1, ASM .25/.25/.25/.15/.1, SM .2/.25/.25/.2/.1, DM .15/.25/.3/.2/.1)
+- [ ] Migrasi `0013_badges.sql` — tabel `badges` + `user_badges` (dipetakan ke KPI
+  sheet "KPI PE": Kaizen Star, Speed Responder ≤ 2 jam, 5S Champion, dst.)
+- [ ] `lib/points.js` — `hitungPoin(basis, kategoriKPI, golongan, peranRACI, urgensi)`;
+  multiplier RACI R=1.0 / A=0.5 / C=0.25, urgensi low 1× / mid 1.25× / high 1.5×
+- [ ] Form buat task: dropdown kategori KPI + preview poin terhitung otomatis
+- [ ] Navigasi: `lib/nav.js` (single source) + `components/SideNav.jsx` (desktop ≥ 900px)
+  + `components/BottomNav.jsx` (mobile fixed bottom, safe-area) terpasang di layout
+
+## Sprint 10 — Leaderboard & grafik performa
+
+- [ ] Dependency baru: **recharts** (chart React) — dipakai `/performance` & `/forecast`
+- [ ] `GET /api/leaderboard?month=` — ranking poin bulanan per team & global (scoped)
+- [ ] `GET /api/performance/{userId|teamId}` — agregasi poin per kategori KPI + tren
+- [ ] Page `/leaderboard` — ranking bulanan + badge showcase
+- [ ] Page `/performance` — LineChart tren poin, RadarChart 5 kategori KPI vs bobot
+  level, BarChart per team
+- [ ] Refine design token (`globals.css`): radius 16/10, shadow bertingkat
+  `--shadow-sm/md`, metrik mono lebih besar — **hex warna tidak berubah**
+
+## Sprint 11 — Scheduling & forecasting
+
+- [ ] `GET /api/schedule` — agenda task per minggu + beban per user (kapasitas)
+- [ ] Page `/schedule` — kalender/agenda deadline mingguan, atasan lihat beban bawahan
+- [ ] `GET /api/forecast` — velocity poin & task 3 bulan → proyeksi capaian kuartal
+  (moving average) + indikator on-track / at-risk per kategori KPI
+- [ ] Page `/forecast` — AreaChart velocity + garis proyeksi
+- [ ] Audit responsive mobile (`sm:` breakpoint) & fokus keyboard nav baru
+- [ ] Validasi `npm run lint` + `npm run build` di tiap langkah besar
+
+---
+
 ## Sprint 7 — UAT & stabilisasi
 
 - [ ] Pilih 5-10 orang dari berbagai golongan untuk uji nyata

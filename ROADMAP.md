@@ -136,6 +136,36 @@ Asumsi: 1 sprint = 2 minggu, tim kecil (1-2 developer). Sesuaikan durasi kalau t
 
 ---
 
+## Sprint 9 — Gamifikasi: fondasi poin & bobot KPI
+**Tujuan**: bobot task & reward berbasis `role & responsibility.xlsx` (bukan angka arbitrer).
+
+- Migrasi `0012` (kolom `tasks.kpi_category` + tabel `point_rules` — bobot per level dari sheet "Bobot KPI") & `0013` (`badges`, `user_badges`)
+- `lib/points.js`: poin = basis kategori × bobot level × RACI (R 1.0 / A 0.5 / C 0.25) × urgensi (1 / 1.25 / 1.5)
+- Dropdown kategori KPI di form buat task + preview poin
+- Navigasi baru: `SideNav` (desktop) + `BottomNav` (mobile) dari config `lib/nav.js`
+
+**Output**: setiap task punya bobot yang bisa dipertanggungjawabkan ke matriks KPI resmi.
+
+## Sprint 10 — Leaderboard & grafik monitoring
+**Tujuan**: performa individu & tim terlihat, bukan hanya angka poin mentah.
+
+- Dependency baru **recharts**; page `/performance` (LineChart tren, RadarChart 5 kategori KPI vs bobot level, BarChart per team) & `/leaderboard` (ranking bulanan + badge)
+- Endpoint agregasi read-only `/api/leaderboard`, `/api/performance/*` (poin tetap server-write-only)
+- Refine design token: radius 16/10, shadow bertingkat, metrik mono lebih besar — palet warna tetap
+
+**Output**: app jadi acuan pantau performa tim; korporat tapi tetap santai.
+
+## Sprint 11 — Scheduling & forecasting
+**Tujuan**: dari reaktif ke prediktif.
+
+- Page `/schedule` (agenda deadline mingguan + beban per user) & `/forecast` (velocity 3 bulan → proyeksi kuartal, on-track / at-risk per kategori KPI)
+- Endpoint `/api/schedule` + `/api/forecast` (moving average, tanpa ML)
+- Audit responsive & aksesibilitas nav baru; lint + build
+
+**Output**: atasan bisa merencanakan kapasitas & memproyeksikan capaian KPI kuartalan.
+
+---
+
 ## Ringkasan garis waktu
 
 | Sprint | Fokus | Durasi kumulatif |

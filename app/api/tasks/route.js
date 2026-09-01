@@ -5,6 +5,7 @@ import { sendTelegramMessage, notifyTelegram } from '@/lib/telegram';
 import { emailTaskAssigned } from '@/lib/email';
 import { isAtasan } from '@/lib/constants';
 import { getSubordinateIds } from '@/lib/hierarchy';
+import { KPI_CATEGORIES, hitungPoin } from '@/lib/points';
 
 // POST /api/tasks — buat task baru (golongan >= 5)
 export async function POST(req) {
@@ -12,10 +13,13 @@ export async function POST(req) {
   if (error) return error;
 
   const body = await req.json().catch(() => null);
-  const { judul, deskripsi, ditugaskanKe, bobotPoin, deadline } = body || {};
+  const { judul, deskripsi, ditugaskanKe, bobotPoin, deadline, kategoriKPI, urgensi } = body || {};
 
   if (!judul || !ditugaskanKe) {
     return jsonError(400, 'INVALID_ARGUMENT', 'judul dan ditugaskanKe wajib diisi');
+  }
+  if (kategoriKPI && !KPI_CATEGORIES.includes(kategoriKPI)) {
+    return jsonError(400, 'INVALID_ARGUMENT', 'kategoriKPI tidak dikenal');
   }
 
   const admin = createAdminClient();
@@ -25,6 +29,15 @@ export async function POST(req) {
   if (!subs.includes(ditugaskanKe)) {
     return jsonError(403, 'PERMISSION_DENIED', 'Kamu hanya bisa menugaskan task ke bawahan kamu');
   }
+
+  // Bobot poin: kategori KPI menghitung otomatis (matriks Bobot KPI);
+  // tanpa kategori tetap fallback ke bobotPoin manual (kompatibel lama).
+  let points = Number(bobotPoin) || 0;
+  if (kategoriKPI) {
+    const { data: target } = await admin.from('users').select('golongan').eq('id', ditugaskanKe).maybeSingle();
+    points = hitungPoin({ kategoriKPI, golongan: target?.golongan, urgensi: urgensi || 'bisa_nunggu' });
+  }
+
   const { data: task, error: insErr } = await admin
     .from('tasks')
     .insert({
@@ -32,7 +45,8 @@ export async function POST(req) {
       assigned_to: ditugaskanKe,
       title: judul,
       description: deskripsi || null,
-      points: Number(bobotPoin) || 0,
+      points,
+      kpi_category: kategoriKPI || null,
       deadline: deadline || null,
       status: 'assigned',
     })
@@ -49,7 +63,7 @@ export async function POST(req) {
     .maybeSingle();
 
   if (target?.telegram_chat_id) {
-    const poin = Number(bobotPoin) || 0;
+    const poin = points;
     const text = `📋 <b>Task baru</b>\n${judul}${deadline ? `\nDeadline: ${deadline}` : ''}\nBobot: ${poin} poin\n\n🔖 #task_${task.id}`;
 
     // Chat pribadi pelaksana: sertakan tombol aksi cepat.
