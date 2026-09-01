@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconHome, IconClipboardPlus, IconChartLine, IconTrophy,
-  IconCalendarWeek, IconTrendingUp, IconUsersGroup,
+  IconCalendarWeek, IconTrendingUp, IconUsersGroup, IconTool,
 } from '@tabler/icons-react';
 import { useAuth } from '@/components/AuthContext';
 import { isAtasan } from '@/lib/constants';
@@ -24,6 +24,9 @@ export default function SideNav() {
 
   return (
     <nav className="sidenav" aria-label="Navigasi utama">
+      <div className="sidenav-brand">
+        <IconTool size={18} aria-hidden="true" /> Macha Task
+      </div>
       {items.map((it) => {
         const Icon = ICONS[it.icon] || IconHome;
         const active = pathname === it.href;
