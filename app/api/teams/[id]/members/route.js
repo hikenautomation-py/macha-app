@@ -10,9 +10,9 @@ export async function POST(req, { params }) {
 
   const body = await req.json().catch(() => null);
   const { userId, action } = body || {};
-  if (!userId) return jsonError(400, 'INVALID_ARGUMENT', 'userId wajib diisi');
-  if (!['add', 'remove'].includes(action)) {
-    return jsonError(400, 'INVALID_ARGUMENT', 'action harus add atau remove');
+  if (!userId && action !== 'sync') return jsonError(400, 'INVALID_ARGUMENT', 'userId wajib diisi');
+  if (!['add', 'remove', 'sync'].includes(action)) {
+    return jsonError(400, 'INVALID_ARGUMENT', 'action harus add, remove, atau sync');
   }
 
   const admin = createAdminClient();
@@ -25,6 +25,20 @@ export async function POST(req, { params }) {
   }
 
   const subs = await getSubordinateIds(admin, profile.id);
+
+  // action=sync — masukkan seluruh subtree bawahan lead ke team sekali klik
+  // (rekursif, konsisten dengan "Statistik tim" / anggotaTim di dashboard).
+  if (action === 'sync') {
+    const leadSubs = await getSubordinateIds(admin, team.lead_id);
+    const rows = leadSubs
+      .filter((id) => id !== team.lead_id)
+      .map((id) => ({ team_id: team.id, user_id: id, role: 'member' }));
+    if (rows.length) {
+      await admin.from('team_members').upsert(rows, { onConflict: 'team_id,user_id' });
+    }
+    return jsonOk({ status: 'synced', ditambahkan: rows.length });
+  }
+
   const targetValid = userId === profile.id || subs.includes(userId);
   if (!targetValid) {
     return jsonError(403, 'PERMISSION_DENIED', 'Target harus kamu sendiri atau bawahan kamu');

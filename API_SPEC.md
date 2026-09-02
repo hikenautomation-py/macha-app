@@ -177,7 +177,7 @@ POST /teams
 Buat team. Body: { "nama": "Line 1", "leadId": "user_id" } — leadId opsional, default diri sendiri, dan harus diri sendiri atau bawahan.
 
 POST /teams/{id}/members
-Tambah/hapus anggota. Body: { "userId": "...", "action": "add" | "remove" }. Hanya lead/creator team; target harus subtree bawahan manager. Add akan menyinkronkan users.atasan_id = lead team.
+Tambah/hapus anggota. Body: { "userId": "...", "action": "add" | "remove" | "sync" }. Hanya lead/creator team; target harus subtree bawahan manager. Add akan menyinkronkan users.atasan_id = lead team. Action "sync" (tanpa userId) memasukkan seluruh subtree bawahan lead ke team sekali klik (upsert, idempoten) — konsisten dengan Statistik tim di dashboard.
 
 5b. Laporan umum & problem list
 POST /external

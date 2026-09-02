@@ -79,6 +79,21 @@ export default function Teams() {
     await load();
   }
 
+  async function syncMembers(teamId) {
+    setMemberBusy(true);
+    setError('');
+    const res = await apiFetch(token, `/api/teams/${teamId}/members`, {
+      method: 'POST',
+      body: { action: 'sync' },
+    });
+    setMemberBusy(false);
+    if (!res.ok) {
+      setError(apiErrorMessage(res));
+      return;
+    }
+    await load();
+  }
+
   async function manageMember(teamId, action) {
     if (!memberUserId) {
       setError('Pilih anggota dulu.');
@@ -141,7 +156,10 @@ export default function Teams() {
       ) : teams.length === 0 ? (
         <EmptyState>Belum ada team. Buat team pertama kamu di atas.</EmptyState>
       ) : (
-        teams.map((t) => (
+        teams.map((t) => {
+          const memberIds = new Set((t.members || []).map((m) => m.user_id));
+          const belumMasuk = subordinates.filter((s) => !memberIds.has(s.userId));
+          return (
           <div className="card" key={t.id} style={{ marginBottom: 12 }}>
             <div className="t-title">{t.nama}</div>
             <div className="t-meta" style={{ marginTop: 4 }}>
@@ -154,6 +172,12 @@ export default function Teams() {
                 </li>
               ))}
             </ul>
+
+            {belumMasuk.length > 0 ? (
+              <p className="t-meta" style={{ margin: '0 0 10px' }}>
+                ⚠ {belumMasuk.length} bawahan kamu belum masuk team ini: {belumMasuk.map((s) => s.nama).join(', ')}.
+              </p>
+            ) : null}
 
             {memberTeamId === t.id ? (
               <div style={{ marginTop: 10 }}>
@@ -171,10 +195,18 @@ export default function Teams() {
                 </div>
               </div>
             ) : (
-              <button className="btn" onClick={() => setMemberTeamId(t.id)}>Kelola anggota</button>
+              <div className="row" style={{ gap: 8 }}>
+                <button className="btn" onClick={() => setMemberTeamId(t.id)}>Kelola anggota</button>
+                {belumMasuk.length > 0 ? (
+                  <button className="btn btn-primary" disabled={memberBusy} onClick={() => syncMembers(t.id)}>
+                    {memberBusy ? 'Menyinkronkan…' : 'Sinkronkan bawahan'}
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
-        ))
+          );
+        })
       )}
     </div>
   );
