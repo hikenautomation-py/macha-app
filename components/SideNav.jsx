@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconHome, IconClipboardPlus, IconChartLine, IconTrophy,
-  IconCalendarWeek, IconTrendingUp, IconUsersGroup, IconTool,
+  IconCalendarWeek, IconTrendingUp, IconUsersGroup, IconTool, IconUser,
 } from '@tabler/icons-react';
 import { useAuth } from '@/components/AuthContext';
 import { isAtasan } from '@/lib/constants';
@@ -12,7 +12,7 @@ import { navItemsFor } from '@/lib/nav';
 
 const ICONS = {
   IconHome, IconClipboardPlus, IconChartLine, IconTrophy,
-  IconCalendarWeek, IconTrendingUp, IconUsersGroup,
+  IconCalendarWeek, IconTrendingUp, IconUsersGroup, IconUser,
 };
 
 // Sidebar desktop (>= 900px). Tampil hanya saat login.

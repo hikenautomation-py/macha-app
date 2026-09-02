@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  IconHome, IconClipboardPlus, IconChartLine, IconTrophy, IconCalendarWeek,
+  IconHome, IconClipboardPlus, IconChartLine, IconTrophy, IconCalendarWeek, IconUser,
 } from '@tabler/icons-react';
 import { useAuth } from '@/components/AuthContext';
 import { isAtasan } from '@/lib/constants';
 import { navItemsFor } from '@/lib/nav';
 
-const ICONS = { IconHome, IconClipboardPlus, IconChartLine, IconTrophy, IconCalendarWeek };
+const ICONS = { IconHome, IconClipboardPlus, IconChartLine, IconTrophy, IconCalendarWeek, IconUser };
 
 // Bottom navbar mobile (< 900px). Tampil hanya saat login.
 export default function BottomNav() {

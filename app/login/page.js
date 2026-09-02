@@ -11,7 +11,7 @@ export default function Login() {
   const { session, profile, loading, signIn } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState('masuk');
-  const [form, setForm] = useState({ email: '', password: '', nama: '', npk: '', golongan: '3', title: 'Technician' });
+  const [form, setForm] = useState({ identifier: '', password: '', email: '', nama: '', npk: '', golongan: '3', title: 'Technician' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +29,22 @@ export default function Login() {
     setBusy(true);
     try {
       if (mode === 'masuk') {
-        const { error } = await signIn(form.email, form.password);
+        let emailToSignIn = form.identifier;
+
+        // Resolve NPK to Email if needed
+        const resResolve = await apiFetch('', '/api/auth/resolve', {
+          method: 'POST',
+          body: { identifier: form.identifier }
+        });
+
+        if (resResolve.ok && resResolve.json?.data?.email) {
+          emailToSignIn = resResolve.json.data.email;
+        } else if (!form.identifier.includes('@')) {
+          // If not an email and resolve failed, fail early
+          throw new Error(apiErrorMessage(resResolve));
+        }
+
+        const { error } = await signIn(emailToSignIn, form.password);
         if (error) throw new Error(error.message);
       } else {
         if (!form.nama.trim()) throw new Error('Nama wajib diisi.');
@@ -84,8 +99,17 @@ export default function Login() {
               </div>
 
           <form onSubmit={submit}>
-            <label className="f-label">Email</label>
-            <input className="f-input" type="email" value={form.email} onChange={set('email')} placeholder="nama@perusahaan.com" required />
+            {mode === 'masuk' ? (
+              <>
+                <label className="f-label">Email atau NPK / User ID</label>
+                <input className="f-input" type="text" value={form.identifier} onChange={set('identifier')} placeholder="nama@perusahaan.com atau 2110210" required />
+              </>
+            ) : (
+              <>
+                <label className="f-label">Email</label>
+                <input className="f-input" type="email" value={form.email} onChange={set('email')} placeholder="nama@perusahaan.com" required />
+              </>
+            )}
 
             <label className="f-label" style={{ marginTop: 12 }}>Password</label>
             <input className="f-input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" minLength={6} required />
