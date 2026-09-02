@@ -21,7 +21,7 @@ export async function GET(req) {
   const [{ data: tasks, error: e1 }, { data: users, error: e2 }] = await Promise.all([
     admin
       .from('tasks')
-      .select('id, title, assigned_to, status, points, deadline, kpi_category')
+      .select('id, title, assigned_to, status, points, deadline, kpi_category, created_at')
       .in('assigned_to', viewable)
       .in('status', ['assigned', 'in_progress', 'report_submitted'])
       .order('deadline', { ascending: true, nullsFirst: false }),
@@ -40,6 +40,7 @@ export async function GET(req) {
     status: t.status,
     poin: t.points || 0,
     deadline: t.deadline,
+    mulai: t.created_at ? t.created_at.slice(0, 10) : null,
     kategoriKPI: t.kpi_category,
     terlambat: Boolean(t.deadline && t.deadline < today),
     dalamJendela: Boolean(t.deadline && t.deadline >= today && t.deadline <= until),

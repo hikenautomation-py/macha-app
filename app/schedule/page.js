@@ -10,6 +10,7 @@ import { TASK_STATUS_LABEL } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import GanttChart from '@/components/GanttChart';
 
 export default function Schedule() {
   const { session, loading } = useAuth();
@@ -100,6 +101,13 @@ export default function Schedule() {
               </table>
             </div>
           ) : null}
+
+          <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, marginBottom: 8 }}>
+              Gantt chart 4 minggu{beban.length > 1 ? ' — semua bawahan' : ''}
+            </h2>
+            <GanttChart agenda={agenda} multiUser={beban.length > 1} />
+          </div>
 
           <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Agenda deadline</h2>
           {agenda.map((t) => (
