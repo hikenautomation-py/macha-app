@@ -7,7 +7,7 @@ import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan, URGENCY_LABEL } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
-import Loading from '@/components/Loading';
+import { SkeletonList } from '@/components/Skeleton';
 import { IconCheck, IconArrowBackUp, IconAlertTriangle, IconBulb } from '@tabler/icons-react';
 
 export default function Dashboard() {
@@ -219,7 +219,7 @@ export default function Dashboard() {
 
       <div className="section-title">Antrean approval</div>
       {loadingData ? (
-        <Loading />
+        <SkeletonList rows={3} />
       ) : pending.length === 0 ? (
         <EmptyState>Belum ada task yang menunggu approval.</EmptyState>
       ) : (

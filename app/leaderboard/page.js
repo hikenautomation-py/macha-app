@@ -8,6 +8,7 @@ import { apiFetch, apiErrorMessage } from '@/lib/http';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { SkeletonList } from '@/components/Skeleton';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -64,7 +65,7 @@ export default function Leaderboard() {
 
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (
-        <Loading />
+        <SkeletonList rows={5} />
       ) : ranking.length === 0 ? (
         <EmptyState title="Belum ada poin bulan ini" note="Selesaikan task dan kumpulkan poin — nama kamu bakal nongol di sini 🚀" />
       ) : (

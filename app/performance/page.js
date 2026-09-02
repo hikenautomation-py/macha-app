@@ -13,6 +13,7 @@ import { KPI_CATEGORY_LABEL } from '@/lib/points';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { SkeletonChart } from '@/components/Skeleton';
 
 export default function Performance() {
   const { session, loading } = useAuth();
@@ -63,7 +64,7 @@ export default function Performance() {
 
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (
-        <Loading />
+        <SkeletonChart height={200} />
       ) : !data || !adaPoin ? (
         <EmptyState title="Belum ada data performa" note="Poin dari task yang di-approve bakal muncul di grafik ini 📈" />
       ) : (

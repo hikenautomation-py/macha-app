@@ -330,6 +330,26 @@ button.btn-danger:hover { background: #cf5338; border-color: #cf5338; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- Skeleton loading ---------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--border, #e3e0d8);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+
 /* ---------- Aksesibilitas: fokus keyboard & state aktif ---------- */
 button.btn:focus-visible, .tab:focus-visible, .urgency-opt:focus-visible,
 .link-btn:focus-visible, .back-btn:focus-visible {

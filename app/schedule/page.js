@@ -10,6 +10,7 @@ import { TASK_STATUS_LABEL } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { SkeletonTable, SkeletonList } from '@/components/Skeleton';
 import GanttChart from '@/components/GanttChart';
 
 export default function Schedule() {
@@ -72,7 +73,10 @@ export default function Schedule() {
 
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (
-        <Loading />
+        <>
+          <SkeletonTable rows={4} cols={6} />
+          <SkeletonList rows={3} />
+        </>
       ) : (
         <>
           <div className="card" style={{ padding: 16, marginBottom: 16 }}>

@@ -8,7 +8,7 @@ import { IconArrowLeft } from '@tabler/icons-react';
 import { isAtasan } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
-import Loading from '@/components/Loading';
+import { SkeletonList } from '@/components/Skeleton';
 
 export default function Teams() {
   const { session, profile, loading, signOut } = useAuth();
@@ -137,7 +137,7 @@ export default function Teams() {
 
       <div className="section-title">Team kamu</div>
       {loadingData ? (
-        <Loading />
+        <SkeletonList rows={2} />
       ) : teams.length === 0 ? (
         <EmptyState>Belum ada team. Buat team pertama kamu di atas.</EmptyState>
       ) : (

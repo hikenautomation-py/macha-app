@@ -8,7 +8,7 @@ import { apiFetch, apiErrorMessage } from '@/lib/http';
 import { isAtasan } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
-import Loading from '@/components/Loading';
+import { SkeletonList } from '@/components/Skeleton';
 import { IconCheck, IconAlertTriangle, IconBulb, IconHandGrab } from '@tabler/icons-react';
 
 const FILTERS = [
@@ -110,7 +110,7 @@ export default function Tech() {
           </div>
 
           {loadingData ? (
-            <Loading />
+            <SkeletonList rows={3} />
           ) : visible.length === 0 ? (
             <EmptyState>Belum ada task. Santai dulu, atau tanya atasan kamu.</EmptyState>
           ) : (
@@ -134,7 +134,7 @@ export default function Tech() {
         <div className="side">
           <div className="section-title">Laporan umum & request</div>
           {loadingData ? (
-            <Loading />
+            <SkeletonList rows={2} />
           ) : externals.length === 0 ? (
             <EmptyState>Belum ada laporan umum atau request yang terbuka.</EmptyState>
           ) : (

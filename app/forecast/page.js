@@ -11,6 +11,7 @@ import { apiFetch, apiErrorMessage } from '@/lib/http';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
+import { SkeletonChart } from '@/components/Skeleton';
 
 const STATUS_BADGE = {
   on_track: { label: 'On track', bg: 'var(--teal-tint)', color: 'var(--teal-dark)' },
@@ -64,7 +65,7 @@ export default function Forecast() {
 
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (
-        <Loading />
+        <SkeletonChart height={220} />
       ) : !adaData ? (
         <EmptyState title="Belum cukup data" note="Proyeksi butuh riwayat poin minimal sebulan — terus kumpulkan dulu ya 💪" />
       ) : (
