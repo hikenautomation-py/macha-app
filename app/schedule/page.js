@@ -48,6 +48,7 @@ export default function Schedule() {
 
   const agenda = data?.agenda || [];
   const beban = data?.beban || [];
+  const gantt = data?.gantt || [];
 
   return (
     <div className="container">
@@ -72,10 +73,19 @@ export default function Schedule() {
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (
         <Loading />
-      ) : agenda.length === 0 ? (
-        <EmptyState title="Tidak ada task aktif" note="Semua beres — jadwal kosong itu kabar baik ✨" />
       ) : (
         <>
+          <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, marginBottom: 8 }}>
+              Gantt chart 5 bulan{beban.length > 1 ? ' — semua bawahan' : ''}
+            </h2>
+            <GanttChart gantt={gantt} multiUser={beban.length > 1} />
+          </div>
+
+          {agenda.length === 0 ? (
+            <EmptyState title="Tidak ada task aktif" note="Semua beres — jadwal kosong itu kabar baik ✨" />
+          ) : (
+            <>
           {beban.length > 1 ? (
             <div className="card" style={{ padding: 16, marginBottom: 16 }}>
               <h2 style={{ fontSize: 16, marginBottom: 8 }}>Beban tim saat ini</h2>
@@ -102,13 +112,6 @@ export default function Schedule() {
             </div>
           ) : null}
 
-          <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, marginBottom: 8 }}>
-              Gantt chart 4 minggu{beban.length > 1 ? ' — semua bawahan' : ''}
-            </h2>
-            <GanttChart agenda={agenda} multiUser={beban.length > 1} />
-          </div>
-
           <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Agenda deadline</h2>
           {agenda.map((t) => (
             <div key={t.taskId} className="card" style={{ padding: '12px 16px', marginBottom: 8, borderLeft: t.terlambat ? '3px solid var(--coral)' : '3px solid var(--teal)' }}>
@@ -129,6 +132,8 @@ export default function Schedule() {
               </div>
             </div>
           ))}
+            </>
+          )}
         </>
       )}
     </div>

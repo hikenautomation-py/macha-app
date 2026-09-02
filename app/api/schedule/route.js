@@ -18,7 +18,7 @@ export async function GET(req) {
   const admin = createAdminClient();
   const viewable = await getViewableUserIds(admin, profile);
 
-  const [{ data: tasks, error: e1 }, { data: users, error: e2 }] = await Promise.all([
+  const [{ data: tasks, error: e1 }, { data: users, error: e2 }, { data: ganttTasks, error: e3 }] = await Promise.all([
     admin
       .from('tasks')
       .select('id, title, assigned_to, status, points, deadline, kpi_category, created_at')
@@ -26,9 +26,23 @@ export async function GET(req) {
       .in('status', ['assigned', 'in_progress', 'report_submitted'])
       .order('deadline', { ascending: true, nullsFirst: false }),
     admin.from('users').select('id, nama, title').in('id', viewable),
+    // Jendela gantt: awal bulan lalu s.d. akhir 3 bulan ke depan (5 bulan),
+    // termasuk task yang sudah selesai (approved) agar bisa ditandai ✓.
+    (() => {
+      const now = new Date();
+      const ganttStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+      return admin
+        .from('tasks')
+        .select('id, title, assigned_to, status, points, deadline, created_at')
+        .in('assigned_to', viewable)
+        .in('status', ['assigned', 'in_progress', 'report_submitted', 'approved'])
+        .gte('created_at', `${ganttStart}T00:00:00`)
+        .order('created_at', { ascending: true });
+    })(),
   ]);
   if (e1) return jsonError(500, 'INTERNAL', e1.message);
   if (e2) return jsonError(500, 'INTERNAL', e2.message);
+  if (e3) return jsonError(500, 'INTERNAL', e3.message);
 
   const namaById = new Map((users || []).map((u) => [u.id, u.nama]));
 
@@ -59,5 +73,19 @@ export async function GET(req) {
     .map((u) => ({ userId: u.id, nama: u.nama, title: u.title, ...(bebanMap.get(u.id) || { taskAktif: 0, totalPoin: 0, terlambat: 0 }) }))
     .sort((a, b) => b.taskAktif - a.taskAktif);
 
-  return jsonOk({ weeks, sampai: until, agenda, beban });
+  // Baris gantt: task per pelaksana dalam jendela 5 bulan.
+  const gantt = (ganttTasks || []).map((t) => ({
+    taskId: t.id,
+    judul: t.title,
+    userId: t.assigned_to,
+    pelaksana: namaById.get(t.assigned_to) || '—',
+    status: t.status,
+    poin: t.points || 0,
+    mulai: t.created_at ? t.created_at.slice(0, 10) : null,
+    deadline: t.deadline,
+    selesai: t.status === 'approved',
+    terlambat: t.status !== 'approved' && Boolean(t.deadline && t.deadline < today),
+  }));
+
+  return jsonOk({ weeks, sampai: until, agenda, beban, gantt });
 }
