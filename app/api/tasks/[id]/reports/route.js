@@ -26,6 +26,29 @@ export async function POST(req, { params }) {
   if (task.assigned_to !== profile.id) {
     return jsonError(403, 'PERMISSION_DENIED', 'Task ini bukan milik kamu');
   }
+  // Anti duplikat: kalau sudah ada report yang menunggu approval, tolak
+  // (double-click "Kirim untuk approval" tidak membuat report kedua).
+  if (task.status === 'report_submitted') {
+    return jsonError(409, 'CONFLICT', 'Laporan kamu sudah masuk antrean approval — tunggu keputusan atasan');
+  }
+  if (['approved', 'completed'].includes(task.status)) {
+    return jsonError(409, 'CONFLICT', 'Task ini sudah selesai');
+  }
+
+  // Klaim status task secara ATOMIK sebelum insert report: UPDATE berfilter
+  // status != 'report_submitted' — saat double-click/paralel, hanya satu
+  // request yang berhasil klaim; sisanya dapat 0 baris → 409 (anti duplikat).
+  const { data: claimed, error: claimErr } = await admin
+    .from('tasks')
+    .update({ status: 'report_submitted' })
+    .eq('id', params.id)
+    .neq('status', 'report_submitted')
+    .select('id');
+
+  if (claimErr) return jsonError(500, 'INTERNAL', claimErr.message);
+  if (!claimed?.length) {
+    return jsonError(409, 'CONFLICT', 'Laporan kamu sudah masuk antrean approval — tunggu keputusan atasan');
+  }
 
   const { data: report, error: insErr } = await admin
     .from('task_reports')
@@ -39,10 +62,11 @@ export async function POST(req, { params }) {
     .select('*')
     .single();
 
-  if (insErr) return jsonError(500, 'INTERNAL', insErr.message);
-
-  // Ubah status task menjadi report_submitted.
-  await admin.from('tasks').update({ status: 'report_submitted' }).eq('id', params.id);
+  if (insErr) {
+    // Kembalikan status task supaya user bisa coba lagi.
+    await admin.from('tasks').update({ status: task.status }).eq('id', params.id);
+    return jsonError(500, 'INTERNAL', insErr.message);
+  }
 
   // Notif ke atasan terkait.
   if (task.assigned_by) {

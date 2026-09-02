@@ -22,6 +22,21 @@ export async function POST(req, { params }) {
   if (task.assigned_by !== profile.id) {
     return jsonError(403, 'PERMISSION_DENIED', 'Kamu bukan atasan dari task ini');
   }
+  // Hanya report yang masih menunggu approval yang bisa di-reject —
+  // mencegah reject berulang (state korup + notifikasi spam).
+  if (task.status !== 'report_submitted') {
+    return jsonError(409, 'INVALID_ARGUMENT', 'Task tidak dalam status menunggu approval');
+  }
+  const { data: report } = await admin
+    .from('task_reports')
+    .select('id, status')
+    .eq('id', params.reportId)
+    .eq('task_id', params.id)
+    .maybeSingle();
+  if (!report) return jsonError(404, 'NOT_FOUND', 'Report tidak ditemukan');
+  if (report.status !== 'report_submitted') {
+    return jsonError(409, 'INVALID_ARGUMENT', 'Report ini sudah diproses');
+  }
 
   // Status task kembali ke in_progress; report ditandai rejected.
   await admin.from('tasks').update({ status: 'in_progress' }).eq('id', params.id);

@@ -19,28 +19,35 @@ export async function GET(req, { params }) {
 
   const admin = createAdminClient();
   const subordinateIds = await getSubordinateIds(admin, profile.id);
+  if (!subordinateIds.length) return jsonOk([]);
 
-  const result = [];
-  for (const id of subordinateIds) {
-    const { data: b } = await admin
-      .from('users')
-      .select('id, nama, golongan, title')
-      .eq('id', id)
-      .maybeSingle();
-    if (!b) continue;
-    let q = admin.from('points_history').select('points').eq('user_id', id);
-    if (month) {
-      const [y, m] = month.split('-').map(Number);
-      if (!Number.isNaN(y) && !Number.isNaN(m)) {
-        const start = `${month}-01`;
-        const end = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
-        q = q.gte('created_at', start).lt('created_at', end);
-      }
+  // 2 query batch (bukan N+1 per bawahan): profil semua bawahan + seluruh
+  // baris poin mereka sekaligus, lalu diagregasi di memori.
+  let q = admin.from('points_history').select('user_id, points').in('user_id', subordinateIds);
+  if (month) {
+    const [y, m] = month.split('-').map(Number);
+    if (!Number.isNaN(y) && !Number.isNaN(m)) {
+      const start = `${month}-01`;
+      const end = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+      q = q.gte('created_at', start).lt('created_at', end);
     }
-    const { data: rows } = await q;
-    const poin = (rows || []).reduce((s, r) => s + (r.points || 0), 0);
-    result.push({ userId: b.id, nama: b.nama, golongan: b.golongan, title: userTitle(b), poin });
   }
+
+  const [{ data: bawahan }, { data: rows }] = await Promise.all([
+    admin.from('users').select('id, nama, golongan, title').in('id', subordinateIds),
+    q,
+  ]);
+
+  const poinById = {};
+  for (const r of rows || []) {
+    poinById[r.user_id] = (poinById[r.user_id] || 0) + (r.points || 0);
+  }
+
+  const byId = Object.fromEntries((bawahan || []).map((b) => [b.id, b]));
+  const result = subordinateIds
+    .map((id) => byId[id])
+    .filter(Boolean)
+    .map((b) => ({ userId: b.id, nama: b.nama, golongan: b.golongan, title: userTitle(b), poin: poinById[b.id] || 0 }));
 
   return jsonOk(result);
 }

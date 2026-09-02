@@ -20,14 +20,14 @@ export async function POST(req, { params }) {
     return jsonError(409, 'CONFLICT', 'Laporan ini sudah diambil/ditutup');
   }
 
-  const { task, error: createErr } = await createTaskFromExternal(admin, {
+  const { task, error: createErr, conflict } = await createTaskFromExternal(admin, {
     row,
     assignedBy: profile.atasan_id || null,
     assignedTo: profile.id,
   });
 
   if (createErr) {
-    if (createErr.conflict) {
+    if (conflict) {
       return jsonError(409, 'CONFLICT', 'Laporan ini sudah diambil orang lain');
     }
     return jsonError(500, 'INTERNAL', createErr.message);

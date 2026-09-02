@@ -4,20 +4,23 @@ Dokumen ini berisi skenario kegagalan yang relevan untuk diuji, dikelompokkan be
 
 Legenda prioritas: 🔴 Tinggi (wajib diuji sebelum go-live) — 🟡 Sedang (uji kalau ada waktu, atau setelah fitur terkait dibangun) — ⚪ Rendah/tidak relevan (belum berlaku di arsitektur saat ini)
 
+Legenda status: ✅ lulus (diuji otomatis via `node --env-file=.env.local _qa.mjs` terhadap `next start` lokal + Supabase asli, 2026-09-02) — 🔍 lulus via review kode — 🖐 harus diuji manual — ☐ belum diuji
+
+
 ---
 
 ## 1. Integrasi eksternal & network
 
 | # | Kegagalan | Prioritas | Skenario test | Perilaku yang diharapkan | Status |
 |---|---|---|---|---|---|
-| 1.1 | Webhook error | 🔴 | Kirim payload malformed ke `/api/telegram-webhook`; simulasikan Telegram mengirim ulang (retry) saat endpoint sedang down | Endpoint tidak crash, mengembalikan status code yang sesuai supaya Telegram tahu harus retry atau tidak; tidak ada data korup di database | ☐ |
-| 1.2 | Push notification gagal | 🔴 | Kirim notifikasi ke `chat_id` yang sudah block bot, atau `chat_id` tidak valid | Task tetap ter-assign di database meski notifikasi gagal; ada log error, tidak membuat seluruh request gagal total | ☐ |
-| 1.3 | External API timeout | 🔴 | Simulasikan Telegram API / Resend API lambat merespons (mock delay 30 detik+) | Request pengguna tidak ikut hang selamanya; ada timeout wajar (misal 10 detik) dengan pesan error yang jelas | ☐ |
-| 1.4 | CORS | 🔴 | Akses dashboard dari `app.machapp.web.id`, pastikan call ke Supabase tidak diblok browser | Tidak ada error CORS di console; domain custom sudah terdaftar di Supabase Auth URL Configuration | ☐ |
-| 1.5 | DNS drama | 🔴 | Cek propagasi record setelah setup domain; test perubahan nameserver kalau pindah ke Cloudflare | Semua record (SPF, DKIM, CNAME) terverifikasi dengan benar; tidak ada downtime tak terduga saat migrasi | ☐ |
-| 1.6 | Redirect loop | 🟡 | *Kondisional*: kalau domain dipindah ke Cloudflare proxy, test akses via HTTP dan HTTPS | Tidak ada infinite redirect; SSL/TLS mode Cloudflare di-set "Full" atau "Full (strict)", bukan "Flexible" | ☐ |
-| 1.7 | SSL expired | 🟡 | Cek status SSL certificate domain custom secara berkala | Vercel auto-renew SSL selama DNS masih benar; alert kalau ada perubahan nameserver yang bisa mengganggu renewal | ☐ |
-| 1.8 | CDN nggak update | 🟡 | *Kondisional*: kalau pakai Cloudflare dengan proxy aktif, deploy versi baru lalu cek apakah user langsung lihat perubahan | User melihat versi terbaru setelah deploy; kalau tidak, cek cache purge Cloudflare otomatis/manual | ☐ |
+| 1.1 | Webhook error | 🔴 | Kirim payload malformed ke `/api/telegram-webhook`; simulasikan Telegram mengirim ulang (retry) saat endpoint sedang down | Endpoint tidak crash, mengembalikan status code yang sesuai supaya Telegram tahu harus retry atau tidak; tidak ada data korup di database | ✅ malformed JSON & payload kosong → 200; tanpa secret token → 401 |
+| 1.2 | Push notification gagal | 🔴 | Kirim notifikasi ke `chat_id` yang sudah block bot, atau `chat_id` tidak valid | Task tetap ter-assign di database meski notifikasi gagal; ada log error, tidak membuat seluruh request gagal total | 🔍 semua fungsi `lib/telegram.js` & `lib/email.js` try/catch → return null; task tetap tersimpan (terverifikasi di skenario 3.x: user QA tanpa `telegram_chat_id`, task tetap dibuat) |
+| 1.3 | External API timeout | 🔴 | Simulasikan Telegram API / Resend API lambat merespons (mock delay 30 detik+) | Request pengguna tidak ikut hang selamanya; ada timeout wajar (misal 10 detik) dengan pesan error yang jelas | ✅ **fix**: `AbortSignal.timeout(10s)` ditambahkan ke semua fetch Telegram (sendMessage, answerCallback, editMessage, setMyCommands) & Resend |
+| 1.4 | CORS | 🔴 | Akses dashboard dari `app.machapp.web.id`, pastikan call ke Supabase tidak diblok browser | Tidak ada error CORS di console; domain custom sudah terdaftar di Supabase Auth URL Configuration | 🖐 manual — butuh browser + domain produksi |
+| 1.5 | DNS drama | 🔴 | Cek propagasi record setelah setup domain; test perubahan nameserver kalau pindah ke Cloudflare | Semua record (SPF, DKIM, CNAME) terverifikasi dengan benar; tidak ada downtime tak terduga saat migrasi | 🖐 manual — cek dashboard Resend/Vercel (catatan: record SPF/MX/DKIM sudah terverifikasi publik per TODOS.md) |
+| 1.6 | Redirect loop | 🟡 | *Kondisional*: kalau domain dipindah ke Cloudflare proxy, test akses via HTTP dan HTTPS | Tidak ada infinite redirect; SSL/TLS mode Cloudflare di-set "Full" atau "Full (strict)", bukan "Flexible" | 🖐 manual/kondisional |
+| 1.7 | SSL expired | 🟡 | Cek status SSL certificate domain custom secara berkala | Vercel auto-renew SSL selama DNS masih benar; alert kalau ada perubahan nameserver yang bisa mengganggu renewal | 🖐 manual/berkala |
+| 1.8 | CDN nggak update | 🟡 | *Kondisional*: kalau pakai Cloudflare dengan proxy aktif, deploy versi baru lalu cek apakah user langsung lihat perubahan | User melihat versi terbaru setelah deploy; kalau tidak, cek cache purge Cloudflare otomatis/manual | 🖐 manual/kondisional |
 
 ---
 
@@ -25,9 +28,9 @@ Legenda prioritas: 🔴 Tinggi (wajib diuji sebelum go-live) — 🟡 Sedang (uj
 
 | # | Kegagalan | Prioritas | Skenario test | Perilaku yang diharapkan | Status |
 |---|---|---|---|---|---|
-| 2.1 | JWT invalid | 🔴 | Akses dashboard dengan token Supabase yang sudah expired/rusak | Redirect otomatis ke halaman login, bukan error 500 atau halaman blank | ☐ |
-| 2.2 | Session logout sendiri | 🔴 | Buka dashboard, biarkan idle beberapa jam, cek apakah sesi masih hidup | Sesi bertahan sesuai durasi yang dikonfigurasi, tidak logout tiba-tiba akibat bug cookie/refresh token | ☐ |
-| 2.3 | Cookie nggak ke-set | 🔴 | Test login dari berbagai browser, terutama Safari (lebih strict soal cookie pihak ketiga) | Cookie sesi ter-set dengan benar (`SameSite`, `Secure`) di semua browser utama | ☐ |
+| 2.1 | JWT invalid | 🔴 | Akses dashboard dengan token Supabase yang sudah expired/rusak | Redirect otomatis ke halaman login, bukan error 500 atau halaman blank | ✅ API: token rusak & tanpa token → 401 `UNAUTHENTICATED`; sisi UI (redirect ke /login) 🖐 cek visual manual |
+| 2.2 | Session logout sendiri | 🔴 | Buka dashboard, biarkan idle beberapa jam, cek apakah sesi masih hidup | Sesi bertahan sesuai durasi yang dikonfigurasi, tidak logout tiba-tiba akibat bug cookie/refresh token | 🖐 manual — butuh browser idle berjam-jam |
+| 2.3 | Cookie nggak ke-set | 🔴 | Test login dari berbagai browser, terutama Safari (lebih strict soal cookie pihak ketiga) | Cookie sesi ter-set dengan benar (`SameSite`, `Secure`) di semua browser utama | 🖐 manual — butuh browser nyata (Safari/Chrome/Firefox) |
 
 ---
 
@@ -35,14 +38,14 @@ Legenda prioritas: 🔴 Tinggi (wajib diuji sebelum go-live) — 🟡 Sedang (uj
 
 | # | Kegagalan | Prioritas | Skenario test | Perilaku yang diharapkan | Status |
 |---|---|---|---|---|---|
-| 3.1 | Duplicate data | 🔴 | Klik tombol "Kirim untuk approval" 2x cepat berturut-turut; kirim ulang payload webhook Telegram yang identik | Hanya 1 completion report / 1 registrasi yang tersimpan, bukan duplikat | ☐ |
-| 3.2 | DB timeout | 🔴 | Load test beberapa request bersamaan ke endpoint yang query database | Tidak kehabisan koneksi Postgres; pastikan pakai Supabase connection pooler, bukan direct connection | ☐ |
-| 3.3 | N+1 query | 🔴 | Cek query log Supabase saat load halaman statistik tim | Statistik tim di-load dengan 1 query JOIN, bukan 1 query berulang per user | ☐ |
-| 3.4 | Deadlock | 🔴 | 2 atasan approve/reject task yang saling terkait secara bersamaan | Function `approve_report` tetap konsisten, tidak ada dua kali insert poin atau state korup | ☐ |
-| 3.5 | Null pointer | 🔴 | Buat task untuk user tanpa `atasan_id` terisi; akses field yang mungkin kosong (`golongan`, `email_kantor`) | Tidak crash; ada validasi/fallback yang jelas saat data belum lengkap | ☐ |
-| 3.6 | Infinite loop (logika status) | 🔴 | Reject task yang sama berkali-kali secara berturut-turut | State machine tidak tersangkut; tidak ada notifikasi spam berulang tanpa henti | ☐ |
-| 3.7 | Double-pick laporan/request | 🔴 | Dua user (web & Telegram) menekan Pick up pada laporan yang sama dalam detik yang sama | Hanya satu task tercipta; `external_requests.status` jadi `picked` sekali; user yang kalah dapat pesan `ALREADY_PICKED` (guard `.eq('status','open')` di `createTaskFromExternal`) | ☐ |
-| 3.8 | Assign lintas subtree | 🔴 | Atasan mencoba `POST /api/external/{id}/assign` dengan `assignedTo` di luar subtree bawahan-nya | Endpoint mengembalikan `403 PERMISSION_DENIED`; tidak ada task tercipta | ☐ |
+| 3.1 | Duplicate data | 🔴 | Klik tombol "Kirim untuk approval" 2x cepat berturut-turut; kirim ulang payload webhook Telegram yang identik | Hanya 1 completion report / 1 registrasi yang tersimpan, bukan duplikat | ✅ **fix**: klaim status atomik ditambahkan di `POST /tasks/{id}/reports` (UPDATE `.neq('status','report_submitted')`); 2 submit paralel → [200, 409], hanya 1 report pending |
+| 3.2 | DB timeout | 🔴 | Load test beberapa request bersamaan ke endpoint yang query database | Tidak kehabisan koneksi Postgres; pastikan pakai Supabase connection pooler, bukan direct connection | ✅ (lite) 12 request paralel ke `/dashboard/summary` semua 200 (~3s); API pakai supabase-js (HTTP PostgREST, bukan koneksi Postgres langsung). Load test besar 🖐 manual |
+| 3.3 | N+1 query | 🔴 | Cek query log Supabase saat load halaman statistik tim | Statistik tim di-load dengan 1 query JOIN, bukan 1 query berulang per user | ✅ **fix**: `GET /teams/{id}/stats` sebelumnya 2 query per bawahan → kini 2 query batch (`.in(...)`) + agregasi di memori |
+| 3.4 | Deadlock | 🔴 | 2 atasan approve/reject task yang saling terkait secara bersamaan | Function `approve_report` tetap konsisten, tidak ada dua kali insert poin atau state korup | ✅ 2 approve paralel → [200, 409], `points_history` hanya 1 baris |
+| 3.5 | Null pointer | 🔴 | Buat task untuk user tanpa `atasan_id` terisi; akses field yang mungkin kosong (`golongan`, `email_kantor`) | Tidak crash; ada validasi/fallback yang jelas saat data belum lengkap | ✅ pickup oleh user tanpa `atasan_id` → task dibuat dengan `assigned_by=null`; `/schedule` & `/performance` untuk user tsb → 200 |
+| 3.6 | Infinite loop (logika status) | 🔴 | Reject task yang sama berkali-kali secara berturut-turut | State machine tidak tersangkut; tidak ada notifikasi spam berulang tanpa henti | ✅ **fix**: reject kini memvalidasi task & report berstatus `report_submitted` — reject ke-2/3 → 409, tidak ada notifikasi spam |
+| 3.7 | Double-pick laporan/request | 🔴 | Dua user (web & Telegram) menekan Pick up pada laporan yang sama dalam detik yang sama | Hanya satu task tercipta; `external_requests.status` jadi `picked` sekali; user yang kalah dapat pesan `ALREADY_PICKED` (guard `.eq('status','open')` di `createTaskFromExternal`) | ✅ **fix kecil**: yang kalah race kini dapat 409 CONFLICT (sebelumnya 500 karena flag `conflict` salah dibaca) — 2 pickup paralel → [200, 409], 1 task |
+| 3.8 | Assign lintas subtree | 🔴 | Atasan mencoba `POST /api/external/{id}/assign` dengan `assignedTo` di luar subtree bawahan-nya | Endpoint mengembalikan `403 PERMISSION_DENIED`; tidak ada task tercipta | ✅ assign external & assign task langsung, keduanya → 403; laporan tetap `open` |
 
 ---
 
@@ -50,9 +53,9 @@ Legenda prioritas: 🔴 Tinggi (wajib diuji sebelum go-live) — 🟡 Sedang (uj
 
 | # | Kegagalan | Prioritas | Skenario test | Perilaku yang diharapkan | Status |
 |---|---|---|---|---|---|
-| 4.1 | Page render salah implementasi | 🟡 | Login sebagai tiap golongan (Technician, Operator, SPV, ASM, SM), cek elemen yang muncul | Technician/Operator tidak pernah melihat tombol approve; role-based UI konsisten di semua halaman | ☐ |
-| 4.2 | Memory leak (realtime subscription) | 🟡 | Buka dashboard, pindah halaman berkali-kali tanpa reload penuh, cek penggunaan memori browser | Realtime subscription Supabase di-unsubscribe saat komponen unmount, tidak menumpuk | ☐ |
-| 4.3 | Cache expired | 🟡 | *Kondisional*: kalau pakai Next.js ISR/fetch cache untuk data dashboard | Data task/approval terbaru tidak collision dengan cache statis; user tidak lihat data basi | ☐ |
+| 4.1 | Page render salah implementasi | 🟡 | Login sebagai tiap golongan (Technician, Operator, SPV, ASM, SM), cek elemen yang muncul | Technician/Operator tidak pernah melihat tombol approve; role-based UI konsisten di semua halaman | 🖐 manual — cek visual per role (API-nya sudah tervalidasi 403 utk non-atasan) |
+| 4.2 | Memory leak (realtime subscription) | 🟡 | Buka dashboard, pindah halaman berkali-kali tanpa reload penuh, cek penggunaan memori browser | Realtime subscription Supabase di-unsubscribe saat komponen unmount, tidak menumpuk | 🔍 project tidak memakai realtime subscription (fetch on-mount saja) — risiko rendah; profiling browser tetap 🖐 manual |
+| 4.3 | Cache expired | 🟡 | *Kondisional*: kalau pakai Next.js ISR/fetch cache untuk data dashboard | Data task/approval terbaru tidak collision dengan cache statis; user tidak lihat data basi | 🔍 semua halaman data adalah client component dengan fetch bearer-token (tanpa ISR/fetch cache) — tidak berlaku |
 
 ---
 
