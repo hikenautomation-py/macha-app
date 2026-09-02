@@ -42,6 +42,17 @@ Response: { "success": true, "data": { "userId": "generated_id" } }
 POST /registerReject
 Sama seperti di atas tapi menghapus entri pending dan mengirim pesan penolakan.
 
+POST /auth/resolve
+Publik (tanpa JWT, dipanggil halaman login sebelum signInWithPassword). Body: { "identifier": "..." }.
+Jika identifier mengandung `@` → dikembalikan sebagai email (lowercase). Jika tidak → dicari
+`users.npk` yang cocok dan email akun tersebut dikembalikan; 404 NOT_FOUND bila NPK tidak terdaftar.
+Response: { "success": true, "data": { "email": "user@perusahaan.com" } }
+
+PATCH /users/{id}
+User login, hanya untuk dirinya sendiri (self-only). Body: { "email": "baru@perusahaan.com" }.
+Validasi unik di `users.email`, lalu update `public.users` + sinkronisasi ke Supabase Auth
+(`auth.admin.updateUserById`, email_confirm: true). Dipakai halaman /profile untuk ubah email.
+
 2. Task
 POST /tasks
 Buat task baru. Hanya atasan (golongan ≥ 5 DAN title SPV ke atas).
@@ -236,5 +247,9 @@ Endpoint	Method	Golongan minimum
 /external/{id}/pickup	POST	semua user login (assigned_to = diri)
 /external/{id}/assign	POST	5 (assigned_to di subtree bawahan)
 /dashboard/summary	GET	5
+/auth/resolve	POST	- (publik, pra-login: NPK → email)
+/users/{id}	PATCH	semua (hanya dirinya sendiri; ubah email)
+/schedule	GET	semua (scope: diri sendiri, atasan: subtree; agenda + gantt 5 bulan)
+
 /users/{id}/points	GET	semua (hanya data sendiri, kecuali atasan)
 /telegramWebhook	POST	- (validasi via Telegram secret)

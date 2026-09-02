@@ -96,7 +96,7 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
 
 ## 6. Halaman & urutan (sesuai mockup)
 
-1. **Login / Registrasi** — form email/password (login) + nama, NPK, golongan, title/jabatan (daftar) + stamp note: "belum punya akun? daftar, atau ketik /start di bot Telegram dan masukkan NPK untuk menautkan akun".
+1. **Login / Registrasi** — form login menerima **Email atau NPK / User ID** + password (NPK di-resolve ke email via `POST /api/auth/resolve` sebelum sign-in); form daftar tetap email + nama, NPK, golongan, title/jabatan + stamp note: "belum punya akun? daftar, atau ketik /start di bot Telegram dan masukkan NPK untuk menautkan akun".
 2. **Dashboard atasan** — greeting, tombol "Buat task baru" + "Kelola tim", 4 metric card (Task aktif, Menunggu approval, Problem report, Poin tim bulan ini), antrian approval (ticket), section problem report (task), section laporan umum & request (dengan tombol `Resolve` / `Assign to` per item; tombol `Assign to` membuka **modal** dengan `<select>` anggota tim), tabel statistik tim.
 3. **Dashboard technician** — greeting blob, daftar "Task kamu hari ini" (ticket), 2 tombol aksi (Lapor selesai / Lapor masalah), kartu "Poin bulan ini", **sidebar "Laporan umum & request"** dengan tombol `🙋 Pick up` per item (status busy + pesan error inline saat gagal).
 4. **Lapor selesai** — kartu konteks task (teal tint), textarea catatan (wajib), upload foto (opsional), tombol "Kirim untuk approval", stamp note poin.
@@ -105,3 +105,5 @@ Task ditampilkan sebagai "tiket" meniru tiket fisik:
 7. **Laporan umum (publik)** — form nama + NPK + deskripsi masalah, tampil dalam frame phone (mobile-first).
 8. **Permintaan improvement (publik)** — form nama + NPK + deskripsi improvement.
 9. **Modal dialog (pick up/assign)** — `.modal-backdrop` (latar gelap, klik tutup) + `.modal` (kartu putih rounded, `aria-modal="true"`, `aria-labelledby`, tombol Esc untuk tutup) — dipakai dashboard atasan saat Assign to.
+10. **Profil member (`/profile`)** — kartu info akun (Nama, NPK, Golongan, Jabatan, Email) + form ubah email (`PATCH /api/users/{id}`, self-only). Item nav "Profil" (`IconUser`) tampil untuk semua role di SideNav & BottomNav.
+11. **Jadwal (`/schedule`)** — agenda deadline + **gantt chart gaya spreadsheet** (format `gantt.xlsx`): 5 bulan (bulan lalu s.d. +3 bulan) × 4 minggu (W1–W4), bar teal dari minggu task dibuat sampai minggu deadline, coral = lewat deadline, hijau + "✓ Selesai" = approved; kolom minggu ini diberi shading; atasan melihat baris semua bawahan (kolom Nama di-rowSpan), bawahan hanya baris sendiri; tabel dibungkus `overflow-x: auto` untuk scroll horizontal di mobile.

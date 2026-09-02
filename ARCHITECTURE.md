@@ -67,7 +67,7 @@ Web app live di **`https://app.machapp.web.id`** (Vercel). Akun web dan Telegram
 ## 4. Komponen
 
 ### Frontend (Next.js App Router)
-- `app/` berisi halaman: login/registrasi, dashboard atasan, dashboard technician, form buat task, form lapor selesai, form lapor masalah.
+- `app/` berisi halaman: login/registrasi (login via email **atau NPK**), dashboard atasan, dashboard technician, form buat task, form lapor selesai, form lapor masalah, profil member (`/profile`, ubah email), jadwal (`/schedule`, agenda + gantt chart 5 bulan gaya spreadsheet).
 - Mobile-first responsive — tampilan pelaksana dibungkus frame `phone` (max-width 380px); dashboard atasan layout desktop/wide.
 - Design token terpusat di `app/globals.css` (lihat `DESIGN.md`).
 - Autentikasi memakai Supabase Auth; JWT dikirim sebagai `Authorization: Bearer` ke API routes.
