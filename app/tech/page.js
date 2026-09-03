@@ -96,7 +96,7 @@ export default function Tech() {
 
       <div className="two-col">
         <div>
-          <div className="row" style={{ flexWrap: 'wrap', marginBottom: 14 }}>
+          <div className="filter-bar">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -117,7 +117,7 @@ export default function Tech() {
             visible.map((t) => (
               <TicketCard key={t.taskId} task={t}>
                 {ACTIONABLE.includes(t.status) ? (
-                  <div className="row" style={{ marginTop: 12 }}>
+                  <div className="btn-group" style={{ marginTop: 12 }}>
                     <button className="btn btn-primary" onClick={() => router.push(`/tasks/${t.taskId}/complete`)}>
                       <IconCheck size={16} aria-hidden="true" /> Selesaikan
                     </button>

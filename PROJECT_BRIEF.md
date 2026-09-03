@@ -65,7 +65,7 @@ Section Manager Production Engineering saat ini kesulitan mendistribusikan dan m
 | Data / angka | `JetBrains Mono` (500/600) | Poin, NPK, angka statistik |
 
 ### Layout & bentuk
-- Radius card: `20px` — radius kontrol/input: `12px` — badge/pill: `999px` (full round)
+- Radius card: `10px` (`--radius-card`) — radius kontrol/input/badge: `6px` (`--radius-ctrl`). Sudut sengaja kecil supaya kesan korporat, bukan terlalu santai.
 - Card utama: border `1px solid var(--border)`, tanpa shadow default; shadow hanya muncul saat hover pada elemen interaktif (ticket card)
 - Elemen signature: **ticket card** — task ditampilkan sebagai tiket dengan garis putus-putus dan "stub" berisi poin, meniru bentuk tiket fisik
 - Mobile-first untuk semua tampilan yang diakses golongan pelaksana (max-width 380px, dibungkus frame `phone`)

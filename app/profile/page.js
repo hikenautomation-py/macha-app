@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errMsg, setErrMsg] = useState('');
+  const [teams, setTeams] = useState([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
 
   // Synchronize initial input once profile becomes available
   useEffect(() => {
@@ -20,6 +22,22 @@ export default function ProfilePage() {
       setEmailInput(profile.email);
     }
   }, [profile]);
+
+  // Nama tim user (dari team_members) — supaya user tahu dia ada di tim apa.
+  useEffect(() => {
+    const token = session?.access_token;
+    if (!token || !profile?.id) return;
+    let alive = true;
+    (async () => {
+      const res = await apiFetch(token, `/api/users/${profile.id}/teams`);
+      if (!alive) return;
+      if (res.ok) setTeams(res.json?.data || []);
+      setLoadingTeams(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [session, profile]);
 
   if (loading) return <Loading />;
 
@@ -96,6 +114,17 @@ export default function ProfilePage() {
               <label className="f-label" style={{ fontWeight: 600, color: 'var(--ink-soft)' }}>NPK</label>
               <div style={{ fontSize: 15, fontFamily: 'var(--font-mono)', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 {profile.npk || '—'}
+              </div>
+            </div>
+
+            <div>
+              <label className="f-label" style={{ fontWeight: 600, color: 'var(--ink-soft)' }}>Tim</label>
+              <div style={{ fontSize: 15, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                {loadingTeams
+                  ? 'Memuat…'
+                  : teams.length === 0
+                    ? 'Belum tergabung di tim mana pun'
+                    : teams.map((t) => `${t.nama}${t.role === 'lead' ? ' (lead)' : ''}`).join(', ')}
               </div>
             </div>
 

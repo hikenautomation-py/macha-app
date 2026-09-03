@@ -1,11 +1,13 @@
 import { requireAuth, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
+import { getUserTeams, getTeammateIds } from '@/lib/teams';
 
 // GET /api/leaderboard?month=yyyy-mm
-// Ranking poin bulanan seluruh user (gamifikasi bersifat terbuka: semua user
-// login boleh lihat ranking, seperti papan skor fisik di lantai produksi).
+// Ranking poin bulanan, dibatasi ke anggota team user (papan skor per tim, bukan
+// global) — user hanya melihat rekan satu team-nya. User tanpa team hanya
+// melihat dirinya sendiri.
 export async function GET(req) {
-  const { error } = await requireAuth(req);
+  const { profile, error } = await requireAuth(req);
   if (error) return error;
 
   const url = new URL(req.url);
@@ -19,10 +21,21 @@ export async function GET(req) {
 
   const admin = createAdminClient();
 
+  // Scope: hanya rekan satu team (termasuk diri sendiri).
+  const [teams, memberIds] = await Promise.all([
+    getUserTeams(admin, profile.id),
+    getTeammateIds(admin, profile.id),
+  ]);
+
   const [{ data: rows, error: e1 }, { data: users, error: e2 }, { data: awards }] = await Promise.all([
-    admin.from('points_history').select('user_id, points').gte('created_at', start).lt('created_at', end),
-    admin.from('users').select('id, nama, title, golongan'),
-    admin.from('user_badges').select('user_id, badges(code, nama, emoji)'),
+    admin
+      .from('points_history')
+      .select('user_id, points')
+      .in('user_id', memberIds)
+      .gte('created_at', start)
+      .lt('created_at', end),
+    admin.from('users').select('id, nama, title, golongan').in('id', memberIds),
+    admin.from('user_badges').select('user_id, badges(code, nama, emoji)').in('user_id', memberIds),
   ]);
   if (e1) return jsonError(500, 'INTERNAL', e1.message);
   if (e2) return jsonError(500, 'INTERNAL', e2.message);
@@ -52,5 +65,5 @@ export async function GET(req) {
     .sort((a, b) => b.totalPoin - a.totalPoin)
     .map((u, i) => ({ peringkat: i + 1, ...u }));
 
-  return jsonOk({ month, ranking });
+  return jsonOk({ month, ranking, teams });
 }

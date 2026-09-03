@@ -179,6 +179,16 @@ Buat team. Body: { "nama": "Line 1", "leadId": "user_id" } — leadId opsional, 
 POST /teams/{id}/members
 Tambah/hapus anggota. Body: { "userId": "...", "action": "add" | "remove" | "sync" }. Hanya lead/creator team; target harus subtree bawahan manager. Add akan menyinkronkan users.atasan_id = lead team. Action "sync" (tanpa userId) memasukkan seluruh subtree bawahan lead ke team sekali klik (upsert, idempoten) — konsisten dengan Statistik tim di dashboard.
 
+DELETE /teams/{id}
+Hanya lead/creator team. Menghapus team beserta baris `team_members`-nya. Data user, task,
+dan poin tidak ikut terhapus — hanya pengelompokan tim yang hilang.
+Response: { "success": true, "data": { "status": "deleted", "teamId": "..." } }
+Gagal: `PERMISSION_DENIED` (bukan lead/creator), `NOT_FOUND`.
+
+GET /users/{id}/teams
+Daftar team yang diikuti user: [{ id, nama, role }]. Boleh dilihat user itu sendiri atau
+atasannya (subtree). Dipakai halaman /profile untuk menampilkan nama tim.
+
 5b. Laporan umum & problem list
 POST /external
 Publik (tanpa login). Body: { "type": "problem"|"improvement", "nama": "...", "npk": "...", "deskripsi": "..." }. Simpan ke external_requests, notif Telegram + email atasan.

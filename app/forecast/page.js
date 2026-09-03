@@ -77,7 +77,7 @@ export default function Forecast() {
               { label: 'Proyeksi poin kuartal', val: proyeksi?.poinKuartal },
               { label: 'Proyeksi task kuartal', val: proyeksi?.taskKuartal },
             ].map((m) => (
-              <div key={m.label} className="metric" style={{ background: 'var(--surface-tint)', borderRadius: 12, padding: 14 }}>
+              <div key={m.label} className="metric" style={{ background: 'var(--surface-tint)', borderRadius: 10, padding: 14 }}>
                 <div style={{ fontSize: 26, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{m.val ?? 0}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{m.label}</div>
               </div>
@@ -115,7 +115,7 @@ export default function Forecast() {
                       {k.aktualPct}% / target {k.targetPct}%
                     </div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: badge.bg, color: badge.color }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, background: badge.bg, color: badge.color }}>
                     {badge.label}
                   </span>
                 </div>

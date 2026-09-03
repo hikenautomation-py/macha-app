@@ -19,6 +19,7 @@ export default function Leaderboard() {
 
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [ranking, setRanking] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
 
@@ -29,7 +30,10 @@ export default function Leaderboard() {
     try {
       const res = await apiFetch(token, `/api/leaderboard?month=${month}`);
       if (!res.ok) setError(apiErrorMessage(res));
-      else setRanking(res.json?.data?.ranking || []);
+      else {
+        setRanking(res.json?.data?.ranking || []);
+        setTeams(res.json?.data?.teams || []);
+      }
     } finally {
       setLoadingData(false);
     }
@@ -62,6 +66,12 @@ export default function Leaderboard() {
           style={{ width: 'auto' }}
         />
       </div>
+
+      <p className="muted" style={{ marginBottom: 12 }}>
+        {teams.length > 0
+          ? `Ranking anggota tim ${teams.map((t) => t.nama).join(', ')}.`
+          : 'Kamu belum tergabung di tim mana pun — ranking hanya menampilkan poin kamu sendiri. Minta atasan menambahkan kamu ke tim.'}
+      </p>
 
       {error ? <p className="err">{error}</p> : null}
       {loadingData ? (

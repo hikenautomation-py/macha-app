@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthContext';
 import { apiFetch, apiErrorMessage } from '@/lib/http';
-import { IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowLeft, IconTrash } from '@tabler/icons-react';
 import { isAtasan } from '@/lib/constants';
 import AppBar from '@/components/AppBar';
 import EmptyState from '@/components/EmptyState';
@@ -25,6 +25,8 @@ export default function Teams() {
   const [memberTeamId, setMemberTeamId] = useState(null);
   const [memberUserId, setMemberUserId] = useState('');
   const [memberBusy, setMemberBusy] = useState(false);
+  const [deleteTeamId, setDeleteTeamId] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!token || !profile) return;
@@ -91,6 +93,19 @@ export default function Teams() {
       setError(apiErrorMessage(res));
       return;
     }
+    await load();
+  }
+
+  async function deleteTeam(teamId) {
+    setDeleteBusy(true);
+    setError('');
+    const res = await apiFetch(token, `/api/teams/${teamId}`, { method: 'DELETE' });
+    setDeleteBusy(false);
+    if (!res.ok) {
+      setError(apiErrorMessage(res));
+      return;
+    }
+    setDeleteTeamId(null);
     await load();
   }
 
@@ -188,20 +203,35 @@ export default function Teams() {
                     <option key={s.userId} value={s.userId}>{s.nama} ({s.title})</option>
                   ))}
                 </select>
-                <div className="row" style={{ marginTop: 12 }}>
+                <div className="btn-group" style={{ marginTop: 12 }}>
                   <button className="btn btn-primary" disabled={memberBusy} onClick={() => manageMember(t.id, 'add')}>Tambah</button>
                   <button className="btn btn-danger-outline" disabled={memberBusy} onClick={() => manageMember(t.id, 'remove')}>Hapus</button>
                   <button className="link-btn" onClick={() => setMemberTeamId(null)}>Batal</button>
                 </div>
               </div>
+            ) : deleteTeamId === t.id ? (
+              <div>
+                <p className="t-meta" style={{ margin: '0 0 10px' }}>
+                  Hapus team <b>{t.nama}</b>? Anggota akan dilepas dari team ini. Task dan poin mereka tidak ikut terhapus.
+                </p>
+                <div className="btn-group">
+                  <button className="btn btn-danger" disabled={deleteBusy} onClick={() => deleteTeam(t.id)}>
+                    {deleteBusy ? 'Menghapus…' : 'Ya, hapus team'}
+                  </button>
+                  <button className="link-btn" onClick={() => setDeleteTeamId(null)}>Batal</button>
+                </div>
+              </div>
             ) : (
-              <div className="row" style={{ gap: 8 }}>
+              <div className="btn-group">
                 <button className="btn" onClick={() => setMemberTeamId(t.id)}>Kelola anggota</button>
                 {belumMasuk.length > 0 ? (
                   <button className="btn btn-primary" disabled={memberBusy} onClick={() => syncMembers(t.id)}>
                     {memberBusy ? 'Menyinkronkan…' : 'Sinkronkan bawahan'}
                   </button>
                 ) : null}
+                <button className="btn btn-danger-outline" onClick={() => setDeleteTeamId(t.id)}>
+                  <IconTrash size={16} aria-hidden="true" /> Hapus team
+                </button>
               </div>
             )}
           </div>

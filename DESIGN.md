@@ -44,9 +44,10 @@ Font direferensikan lewat system font stack di `app/globals.css` (`--font-head`,
 
 ## 3. Layout & bentuk
 
-- **Radius card**: `20px` (`--radius-card`)
-- **Radius kontrol/input**: `12px` (`--radius-ctrl`)
-- **Badge/pill**: `999px` (full round)
+- **Radius card**: `10px` (`--radius-card`)
+- **Radius kontrol/input**: `6px` (`--radius-ctrl`)
+- **Badge**: `var(--radius-ctrl)` (`6px`) — bukan lagi pill `999px`
+- Sudut sengaja dibuat kecil supaya tampilan terasa korporat/rapi, bukan terlalu santai.
 - **Card utama**: border `1px solid var(--border)`, tanpa shadow default.
 - **Shadow**: hanya muncul saat hover pada elemen interaktif (ticket card): `0 8px 20px rgba(31,78,68,.08)` + `transform: translateY(-2px)`.
 
