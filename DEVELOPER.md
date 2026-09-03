@@ -81,6 +81,13 @@ Buat tabel-tabel berikut di Supabase (bisa via dashboard SQL Editor atau migrati
 > kolom pick up (`picked_by`, `task_id`, `rejected_by`), serta function
 > `get_subordinate_ids` (bawahan rekursif). Terapkan dengan `supabase db push` atau
 > tempel ke SQL Editor, urut setelah `0008`.
+>
+> **Migrasi `0014_approve_report_hierarchy.sql` WAJIB diterapkan** — RPC `approve_report`
+> sebelumnya hanya menerima penyetuju yang persis sama dengan `tasks.assigned_by`, sehingga
+> task hasil pick-up laporan (yang `assigned_by`-nya NULL) tidak bisa disetujui siapa pun
+> (tombol Setujui gagal 403 dari database). Versi baru menerima pembuat task ATAU atasan
+> rekursif si pelaksana. Tanpa migrasi ini, antrian approval akan tampil di dashboard tapi
+> approve-nya tetap ditolak.
 
 -- users
 CREATE TABLE users (

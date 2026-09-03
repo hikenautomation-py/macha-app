@@ -1,6 +1,6 @@
 import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
-import { getSubordinateIds } from '@/lib/hierarchy';
+import { getSubordinateIds, taskScopeOr, canSuperviseTask } from '@/lib/hierarchy';
 
 // GET /api/dashboard/summary — satu payload untuk metric card dashboard atasan.
 export async function GET(req) {
@@ -16,17 +16,19 @@ export async function GET(req) {
   const admin = createAdminClient();
   const subordinateIds = await getSubordinateIds(admin, profile.id);
 
-  const { data: taskAktif } = await admin
-    .from('tasks')
-    .select('id')
-    .eq('assigned_by', profile.id)
-    .in('status', ['assigned', 'in_progress', 'rejected']);
+  // Metric task memakai cakupan yang sama dengan antrian approval: task yang
+  // dia buat ATAU yang dikerjakan bawahannya. Kalau hanya `assigned_by`,
+  // task hasil pick-up laporan (assigned_by kosong) tidak pernah terhitung.
+  const scope = taskScopeOr(profile.id, subordinateIds);
+  const scoped = (q) => (scope ? q.or(scope) : q.eq('assigned_by', profile.id));
 
-  const { data: menunggu } = await admin
-    .from('tasks')
-    .select('id')
-    .eq('assigned_by', profile.id)
-    .eq('status', 'report_submitted');
+  const { data: taskAktif } = await scoped(
+    admin.from('tasks').select('id').in('status', ['assigned', 'in_progress', 'rejected'])
+  );
+
+  const { data: menunggu } = await scoped(
+    admin.from('tasks').select('id').eq('status', 'report_submitted')
+  );
 
   const { data: problems } = await admin
     .from('task_problems')
@@ -35,8 +37,12 @@ export async function GET(req) {
 
   let problemOpen = 0;
   for (const p of problems || []) {
-    const { data: t } = await admin.from('tasks').select('assigned_by').eq('id', p.task_id).maybeSingle();
-    if (t?.assigned_by === profile.id) problemOpen += 1;
+    const { data: t } = await admin
+      .from('tasks')
+      .select('assigned_by, assigned_to')
+      .eq('id', p.task_id)
+      .maybeSingle();
+    if (canSuperviseTask(profile, t, subordinateIds)) problemOpen += 1;
   }
 
   const { data: externalOpen } = await admin

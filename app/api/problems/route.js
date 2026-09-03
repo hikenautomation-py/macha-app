@@ -1,8 +1,10 @@
 import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
+import { getSubordinateIds, canSuperviseTask } from '@/lib/hierarchy';
 
-// GET /api/problems?status=open — daftar problem report pada task yang
-// `assigned_by` = atasan yang sedang login (task-bound problem reports).
+// GET /api/problems?status=open — daftar problem report pada task yang jadi
+// tanggung jawab atasan yang sedang login: dia yang menugaskan ATAU
+// pelaksananya bawahannya (task-bound problem reports).
 export async function GET(req) {
   const { profile, error } = await requireAtasan(req);
   if (error) return error;
@@ -19,10 +21,15 @@ export async function GET(req) {
 
   if (err) return jsonError(500, 'INTERNAL', err.message);
 
+  const subs = await getSubordinateIds(admin, profile.id);
   const result = [];
   for (const p of problems || []) {
-    const { data: task } = await admin.from('tasks').select('title, assigned_by').eq('id', p.task_id).maybeSingle();
-    if (!task || task.assigned_by !== profile.id) continue;
+    const { data: task } = await admin
+      .from('tasks')
+      .select('title, assigned_by, assigned_to')
+      .eq('id', p.task_id)
+      .maybeSingle();
+    if (!canSuperviseTask(profile, task, subs)) continue;
     const { data: u } = await admin.from('users').select('nama').eq('id', p.user_id).maybeSingle();
     result.push({
       problemId: p.id,

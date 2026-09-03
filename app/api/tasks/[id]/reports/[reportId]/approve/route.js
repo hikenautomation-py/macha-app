@@ -2,6 +2,7 @@ import { requireAtasan, jsonOk, jsonError } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase';
 import { notifyTelegram } from '@/lib/telegram';
 import { emailTaskApproved } from '@/lib/email';
+import { getSubordinateIds, canSuperviseTask } from '@/lib/hierarchy';
 
 // POST /api/tasks/{id}/reports/{reportId}/approve (atasan terkait, golongan >= 5)
 export async function POST(req, { params }) {
@@ -16,7 +17,10 @@ export async function POST(req, { params }) {
     .maybeSingle();
 
   if (!task) return jsonError(404, 'NOT_FOUND', 'Task tidak ditemukan');
-  if (task.assigned_by !== profile.id) {
+  // Berhak approve bila dia yang menugaskan ATAU pelaksananya bawahannya
+  // (task hasil pick-up laporan bisa punya `assigned_by` kosong).
+  const subs = await getSubordinateIds(admin, profile.id);
+  if (!canSuperviseTask(profile, task, subs)) {
     return jsonError(403, 'PERMISSION_DENIED', 'Kamu bukan atasan dari task ini');
   }
 

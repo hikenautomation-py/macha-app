@@ -81,8 +81,12 @@ Response:
     { "taskId": "abc123", "judul": "Perbaikan mesin CNC-04", "status": "in_progress", "bobotPoin": 10, "deadline": "2026-08-30" }
   ]
 }
-GET /tasks/pendingApproval?atasanId={id}
-Daftar task dengan status = report_submitted di bawah atasan tertentu. Dipakai dashboard atasan.
+GET /tasks/pendingApproval
+Daftar task dengan status = report_submitted yang jadi tanggung jawab atasan yang sedang login:
+task yang dia buat sendiri (`assigned_by`) ATAU yang dikerjakan bawahannya (`assigned_to` di
+subtree `users.atasan_id`). Cakupan lewat `assigned_to` penting karena task hasil pick-up
+laporan/request bisa punya `assigned_by` NULL — kalau hanya difilter `assigned_by`, task itu
+tidak pernah muncul di antrian siapa pun. Dipakai dashboard atasan.
 
 PATCH /tasks/{taskId}/status
 Ubah status task. Endpoint umum dipanggil internal oleh endpoint lain (jarang dipanggil langsung dari client).
@@ -221,7 +225,8 @@ Response (kedua endpoint di atas):
 Response gagal umum: `PERMISSION_DENIED`, `INVALID_ARGUMENT`, `CONFLICT` (double-pick / status sudah ditutup), `NOT_FOUND`.
 
 GET /problems?status=open
-Atasan. Problem report pada task yang assigned_by = dirinya, disertai judul task + nama pelapor.
+Atasan. Problem report pada task yang jadi tanggung jawabnya (assigned_by = dirinya ATAU
+pelaksananya bawahannya), disertai judul task + nama pelapor.
 
 GET /dashboard/summary
 Atasan. Payload metric: { taskAktif, menungguApproval, problemOpen, anggotaTim, totalPoinTim, externalOpen }.
@@ -242,13 +247,13 @@ Endpoint	Method	Golongan minimum
 /signup	POST	- (publik, service role)
 /tasks	POST	5 (SPV; hanya ke bawahan)
 /tasks	GET	semua (scope: diri sendiri, atasan: subtree)
-/tasks/pendingApproval	GET	5 (hanya task assigned_by dirinya)
+/tasks/pendingApproval	GET	5 (task assigned_by dirinya ATAU pelaksananya bawahannya)
 /tasks/{id}/status	PATCH	5, harus atasan terkait
 /tasks/{id}/reports	POST	semua (hanya task miliknya)
 /tasks/{id}/reports/{id}/approve	POST	5, harus atasan terkait
 /tasks/{id}/problems	POST	semua (hanya task miliknya)
 /tasks/{id}/problems/{id}/resolve	POST	5
-/problems	GET	5 (problem pada task assigned_by dirinya)
+/problems	GET	5 (problem pada task assigned_by dirinya ATAU pelaksananya bawahannya)
 /teams	GET/POST	5
 /teams/{id}/members	POST	5 (lead/creator team)
 /teams/{id}/stats	GET	5 (hanya id == diri sendiri)
